@@ -1,0 +1,20 @@
+package com.klmpk5.daycare_admin.data.local.dao
+
+import androidx.room.*
+import com.klmpk5.daycare_admin.data.local.entities.Child
+import kotlinx.coroutines.flow.Flow
+
+@Dao
+interface ChildDao {
+    @Query("SELECT * FROM children ORDER BY fullName ASC")
+    fun getAllChildren(): Flow<List<Child>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertChild(child: Child): Long
+
+    @Update
+    suspend fun updateChild(child: Child)
+
+    @Delete
+    suspend fun deleteChild(child: Child)
+}
