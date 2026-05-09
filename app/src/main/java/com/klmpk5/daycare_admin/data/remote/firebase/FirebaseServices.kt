@@ -3,6 +3,7 @@ package com.klmpk5.daycare_admin.data.remote.firebase
 import com.google.firebase.firestore.FirebaseFirestore
 import com.klmpk5.daycare_admin.data.remote.model.ChildRemoteDto
 import com.klmpk5.daycare_admin.data.remote.model.DailyScoreRemoteDto
+import com.klmpk5.daycare_admin.data.remote.model.UserRemoteDto
 import com.klmpk5.daycare_admin.data.remote.model.WeeklyPlanRemoteDto
 import kotlinx.coroutines.tasks.await
 
@@ -65,6 +66,19 @@ class FirebaseService {
             val score = doc.toObject(DailyScoreRemoteDto::class.java)
             score?.scoreId = doc.id
             score
+        }
+    }
+
+    // ==========================================
+    // 4. USER OPERATIONS (AUTH & ROLE)
+    // ==========================================
+    suspend fun getUserRole(uid: String): String? {
+        return try {
+            val doc = db.collection("users").document(uid).get().await()
+            val user = doc.toObject(UserRemoteDto::class.java)
+            user?.role
+        } catch (e: Exception) {
+            null
         }
     }
 
