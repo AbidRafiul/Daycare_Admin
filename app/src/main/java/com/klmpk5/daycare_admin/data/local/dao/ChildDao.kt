@@ -12,6 +12,9 @@ interface ChildDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertChild(child: Child): Long
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(children: List<Child>)
+
     @Update
     suspend fun updateChild(child: Child)
 
