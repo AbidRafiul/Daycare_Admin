@@ -1,5 +1,6 @@
 package com.klmpk5.daycare_admin.viewmodel
 
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -12,20 +13,18 @@ class AdminChildViewModel(
     private val repository: ChildRepository
 ) : ViewModel() {
 
-    // Tim UI tinggal observe variabel ini buat nampilin list anak
     val children: Flow<List<Child>> = repository.getAllChildrenLocal()
 
     init {
-        // Otomatis narik SEMUA data anak dari Firebase pas ViewModel ini dibuka
         viewModelScope.launch {
             repository.syncAllChildrenFromRemote()
         }
     }
 
-    // Tim UI tinggal panggil ini pas admin klik tombol "Simpan" di form tambah anak
-    fun addChild(child: Child) {
+    // Fungsi ini sekarang siap menerima Uri gambar dari tim UI
+    fun addChild(child: Child, imageUri: Uri? = null) {
         viewModelScope.launch {
-            repository.addChild(child)
+            repository.addChild(child, imageUri)
         }
     }
 }
