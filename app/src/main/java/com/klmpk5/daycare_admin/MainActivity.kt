@@ -1,47 +1,38 @@
 package com.klmpk5.daycare_admin
 
 import android.os.Bundle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
+import com.klmpk5.daycare_admin.data.remote.firebase.FirebaseService
+import com.klmpk5.daycare_admin.ui.theme.navigation.AppNavigation
 import com.klmpk5.daycare_admin.ui.theme.Daycare_AdminTheme
+import com.klmpk5.daycare_admin.viewmodel.LoginViewModel
+import com.klmpk5.daycare_admin.viewmodel.LoginViewModelFactory
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
         enableEdgeToEdge()
+
         setContent {
             Daycare_AdminTheme {
-                Scaffold( modifier = Modifier.fillMaxSize() ) { innerPadding ->
-                    Greeting(
-                        name = "Android",
-                        modifier = Modifier.padding(innerPadding)
-                    )
-                }
+
+                // Membuat service Firebase untuk dipakai oleh ViewModel
+                val firebaseService = FirebaseService()
+
+                // Membuat LoginViewModel dengan bantuan Factory
+                val loginViewModel: LoginViewModel = viewModel(
+                    factory = LoginViewModelFactory(firebaseService)
+                )
+
+                // Menjalankan navigasi utama aplikasi
+                AppNavigation(
+                    loginViewModel = loginViewModel
+                )
             }
         }
-    }
-}
-
-@Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
-}
-
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    Daycare_AdminTheme {
-        Greeting("Android")
     }
 }
