@@ -87,4 +87,18 @@ class FirebaseService {
         score.scoreId = docRef.id
         docRef.set(score).await()
     }
+
+    suspend fun saveUserProfile(uid: String, email: String, role: String) {
+        try {
+            val userDto = UserRemoteDto(
+                uid = uid,
+                email = email,
+                role = role
+            )
+            // Menyimpan ke koleksi "users" dengan ID dokumen = UID dari Auth
+            db.collection("users").document(uid).set(userDto).await()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
 }

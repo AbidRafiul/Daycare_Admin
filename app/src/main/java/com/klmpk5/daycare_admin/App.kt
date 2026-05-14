@@ -42,8 +42,7 @@ class App : Application() {
         FirebaseApp.initializeApp(this)
 
         // Konfigurasi Cloudinary.
-        // GANTI "NAMA_CLOUD_KAMU" dengan Cloud Name dari dashboard Cloudinary kamu.
-        val config = mapOf("cloud_name" to "NAMA_CLOUD_KAMU")
+        val config = mapOf("cloud_name" to "dl7vqliwp")
         MediaManager.init(this, config)
     }
 }
