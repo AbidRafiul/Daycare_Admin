@@ -21,20 +21,35 @@ class AdminChildViewModel(
         }
     }
 
-    // Fungsi ini sekarang siap menerima Uri gambar dari tim UI
     fun addChild(child: Child, imageUri: Uri? = null) {
         viewModelScope.launch {
             repository.addChild(child, imageUri)
         }
     }
+
+    fun updateChild(child: Child, imageUri: Uri? = null) {
+        viewModelScope.launch {
+            repository.updateChild(child, imageUri)
+        }
+    }
+
+    fun softDeleteChild(child: Child) {
+        viewModelScope.launch {
+            repository.softDeleteChild(child)
+        }
+    }
 }
 
-class AdminChildViewModelFactory(private val repository: ChildRepository) : ViewModelProvider.Factory {
+class AdminChildViewModelFactory(
+    private val repository: ChildRepository
+) : ViewModelProvider.Factory {
+
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(AdminChildViewModel::class.java)) {
             return AdminChildViewModel(repository) as T
         }
+
         throw IllegalArgumentException("Unknown ViewModel class")
     }
 }

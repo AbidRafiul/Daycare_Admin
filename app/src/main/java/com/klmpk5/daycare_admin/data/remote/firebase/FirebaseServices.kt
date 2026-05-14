@@ -1,6 +1,7 @@
 package com.klmpk5.daycare_admin.data.remote.firebase
 
 import com.google.firebase.firestore.FirebaseFirestore
+import com.klmpk5.daycare_admin.data.remote.model.AttendanceRemoteDto
 import com.klmpk5.daycare_admin.data.remote.model.ChildRemoteDto
 import com.klmpk5.daycare_admin.data.remote.model.DailyScoreRemoteDto
 import com.klmpk5.daycare_admin.data.remote.model.UserRemoteDto
@@ -10,9 +11,25 @@ import kotlinx.coroutines.tasks.await
 class FirebaseService {
     private val db = FirebaseFirestore.getInstance()
 
+    suspend fun addOrUpdateAttendance(attendance: AttendanceRemoteDto) {
+        db.collection("attendance")
+            .document(attendance.attendanceId)
+            .set(attendance)
+            .await()
+    }
+
+    suspend fun getAttendanceByDate(date: String): List<AttendanceRemoteDto> {
+        return db.collection("attendance")
+            .whereEqualTo("date", date)
+            .get()
+            .await()
+            .toObjects(AttendanceRemoteDto::class.java)
+    }
+
     // ==========================================
     // 1. CHILD OPERATIONS (ADMIN ACCESS)
     // ==========================================
+
 
     // Admin menarik SEMUA data anak
     suspend fun getAllChildren(): List<ChildRemoteDto> {
@@ -76,6 +93,9 @@ class FirebaseService {
             .await()
     }
 
+
+
+
     // ==========================================
     // 2. WEEKLY PLAN OPERATIONS (ADMIN ACCESS)
     // ==========================================
@@ -137,6 +157,10 @@ class FirebaseService {
     // 4. USER OPERATIONS (AUTH & ROLE)
     // ==========================================
 
+    // ==========================================
+// 4. USER OPERATIONS (AUTH & ROLE)
+// ==========================================
+
     suspend fun getUserRole(uid: String): String? {
         return try {
             val doc = db.collection("users")
@@ -169,20 +193,6 @@ class FirebaseService {
                 .set(userDto)
                 .await()
 
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-    }
-
-    suspend fun saveUserProfile(uid: String, email: String, role: String) {
-        try {
-            val userDto = UserRemoteDto(
-                uid = uid,
-                email = email,
-                role = role
-            )
-            // Menyimpan ke koleksi "users" dengan ID dokumen = UID dari Auth
-            db.collection("users").document(uid).set(userDto).await()
         } catch (e: Exception) {
             e.printStackTrace()
         }
