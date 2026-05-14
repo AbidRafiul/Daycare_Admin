@@ -24,32 +24,40 @@ class ChildRepository(
         withContext(Dispatchers.IO) {
             try {
                 val remoteChildren = firebaseService.getAllChildren()
-                val localEntities = remoteChildren.map { dto ->
+
+                val localChildren = remoteChildren.map { dto ->
                     Child(
                         childId = dto.childId,
+                        childIdRemote = dto.childIdRemote,
                         fullName = dto.fullName,
+                        nickName = dto.nickName,
                         birthDate = dto.birthDate,
                         gender = dto.gender,
                         parentUserId = dto.parentUserId,
+                        parentEmail = dto.parentEmail,
                         photoUrl = dto.photoUrl,
                         isActive = dto.isActive,
                         createdAt = dto.createdAt,
                         updatedAt = dto.updatedAt
                     )
                 }
-                childDao.insertAll(localEntities)
+
+                childDao.insertAll(localChildren)
+
             } catch (e: Exception) {
                 e.printStackTrace()
             }
         }
     }
 
-    suspend fun addChild(childEntity: Child, imageUri: Uri? = null) {
-        withContext(Dispatchers.IO) {
+    suspend fun addChild(
+        childEntity: Child,
+        imageUri: Uri? = null
+    ): Boolean {
+        return withContext(Dispatchers.IO) {
             try {
                 var finalPhotoUrl = childEntity.photoUrl
 
-                // 1. Upload ke Cloudinary jika ada gambar yang dipilih
                 if (imageUri != null) {
                     val uploadedUrl = cloudinaryService.uploadImage(imageUri)
                     if (uploadedUrl != null) {
@@ -57,29 +65,109 @@ class ChildRepository(
                     }
                 }
 
-                // 2. Buat duplikat data dengan URL gambar terbaru
-                val updatedChild = childEntity.copy(photoUrl = finalPhotoUrl)
+                val now = System.currentTimeMillis()
 
-                // 3. Simpan ke database lokal (Room)
+                val updatedChild = childEntity.copy(
+                    parentEmail = childEntity.parentEmail
+                        ?.trim()
+                        ?.lowercase(),
+                    parentUserId = null,
+                    photoUrl = finalPhotoUrl,
+                    updatedAt = now
+                )
+
                 childDao.insertChild(updatedChild)
 
-                // 4. Simpan ke Firebase Firestore
-                val remoteDto = ChildRemoteDto(
-                    childId = updatedChild.childId,
-                    fullName = updatedChild.fullName,
-                    birthDate = updatedChild.birthDate,
-                    gender = updatedChild.gender,
-                    parentUserId = updatedChild.parentUserId,
-                    photoUrl = updatedChild.photoUrl,
-                    isActive = updatedChild.isActive,
-                    createdAt = updatedChild.createdAt,
-                    updatedAt = updatedChild.updatedAt
+                firebaseService.addChild(
+                    updatedChild.toRemoteDto()
                 )
-                firebaseService.addChild(remoteDto)
+
+                true
 
             } catch (e: Exception) {
                 e.printStackTrace()
+                false
             }
         }
+    }
+
+    suspend fun updateChild(
+        childEntity: Child,
+        imageUri: Uri? = null
+    ): Boolean {
+        return withContext(Dispatchers.IO) {
+            try {
+                var finalPhotoUrl = childEntity.photoUrl
+
+                if (imageUri != null) {
+                    val uploadedUrl = cloudinaryService.uploadImage(imageUri)
+                    if (uploadedUrl != null) {
+                        finalPhotoUrl = uploadedUrl
+                    }
+                }
+
+                val now = System.currentTimeMillis()
+
+                val updatedChild = childEntity.copy(
+                    parentEmail = childEntity.parentEmail
+                        ?.trim()
+                        ?.lowercase(),
+                    photoUrl = finalPhotoUrl,
+                    updatedAt = now
+                )
+
+                childDao.updateChild(updatedChild)
+
+                firebaseService.updateChild(
+                    updatedChild.toRemoteDto()
+                )
+
+                true
+
+            } catch (e: Exception) {
+                e.printStackTrace()
+                false
+            }
+        }
+    }
+
+    suspend fun softDeleteChild(child: Child): Boolean {
+        return withContext(Dispatchers.IO) {
+            try {
+                val deletedChild = child.copy(
+                    isActive = false,
+                    updatedAt = System.currentTimeMillis()
+                )
+
+                childDao.updateChild(deletedChild)
+
+                firebaseService.updateChild(
+                    deletedChild.toRemoteDto()
+                )
+
+                true
+
+            } catch (e: Exception) {
+                e.printStackTrace()
+                false
+            }
+        }
+    }
+
+    private fun Child.toRemoteDto(): ChildRemoteDto {
+        return ChildRemoteDto(
+            childId = childId,
+            childIdRemote = childIdRemote,
+            fullName = fullName,
+            nickName = nickName,
+            birthDate = birthDate,
+            gender = gender,
+            parentUserId = parentUserId,
+            parentEmail = parentEmail,
+            photoUrl = photoUrl,
+            isActive = isActive,
+            createdAt = createdAt,
+            updatedAt = updatedAt
+        )
     }
 }
