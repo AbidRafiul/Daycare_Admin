@@ -50,10 +50,7 @@ data class TaskUi(
 @Composable
 fun DashboardScreen(navController: NavController) {
     Scaffold(
-        containerColor = DaycareBackground,
-        bottomBar = {
-            DashboardBottomNavigation(navController = navController)
-        }
+        containerColor = DaycareBackground
     ) { innerPadding ->
         LazyColumn(
             modifier = Modifier

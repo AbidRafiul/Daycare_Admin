@@ -1,5 +1,8 @@
 package com.klmpk5.daycare_admin.ui.screen.raport
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -12,15 +15,23 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.FileProvider
+import coil.compose.AsyncImage
 import com.klmpk5.daycare_admin.data.local.entities.Child
+import com.klmpk5.daycare_admin.data.local.entities.Attendance
 import com.klmpk5.daycare_admin.data.local.entities.DailyScore
+import com.klmpk5.daycare_admin.data.local.entities.WeeklyPlan
+import com.klmpk5.daycare_admin.data.model.AttendanceStatus
 import com.klmpk5.daycare_admin.ui.theme.DaycareBackground
 import com.klmpk5.daycare_admin.ui.theme.DaycareBorder
 import com.klmpk5.daycare_admin.ui.theme.DaycarePrimary
@@ -30,10 +41,13 @@ import com.klmpk5.daycare_admin.ui.theme.DaycareTextPrimary
 import com.klmpk5.daycare_admin.ui.theme.DaycareTextSecondary
 import com.klmpk5.daycare_admin.viewmodel.AdminChildViewModel
 import com.klmpk5.daycare_admin.viewmodel.AdminScoreViewModel
+import com.klmpk5.daycare_admin.viewmodel.AdminWeeklyPlanViewModel
+import com.klmpk5.daycare_admin.viewmodel.AttendanceViewModel
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import java.util.UUID
+import java.io.File
 
 /**
  * HistoryRaportScreen menampilkan detail raport anak.
@@ -50,12 +64,17 @@ fun HistoryRaportScreen(
     childId: String,
     adminChildViewModel: AdminChildViewModel,
     scoreViewModel: AdminScoreViewModel,
+    weeklyPlanViewModel: AdminWeeklyPlanViewModel,
+    attendanceViewModel: AttendanceViewModel,
     onBack: () -> Unit
 ) {
     val children by adminChildViewModel.children.collectAsState(initial = emptyList())
     val child = children.find { it.childId == childId }
 
     val scores by scoreViewModel.getScores(childId).collectAsState(initial = emptyList())
+    val weeklyPlans by weeklyPlanViewModel.weeklyPlans.collectAsState(initial = emptyList())
+    val attendanceList by attendanceViewModel.attendanceList.collectAsState(initial = emptyList())
+    var selectedScoreDetail by remember { mutableStateOf<DailyScore?>(null) }
 
     LaunchedEffect(childId) {
         scoreViewModel.syncScores(childId)
@@ -132,6 +151,10 @@ fun HistoryRaportScreen(
                     ) { score ->
                         ScoreHistoryItem(
                             score = score,
+                            onClick = {
+                                attendanceViewModel.setDate(score.date)
+                                selectedScoreDetail = score
+                            },
                             modifier = Modifier
                                 .padding(horizontal = 20.dp)
                                 .padding(bottom = 12.dp)
@@ -148,10 +171,25 @@ fun HistoryRaportScreen(
                     AddDailyScoreForm(
                         child = child,
                         scoreViewModel = scoreViewModel,
+                        weeklyPlans = weeklyPlans,
                         modifier = Modifier
                             .padding(horizontal = 20.dp)
                     )
                 }
+            }
+
+            selectedScoreDetail?.let { score ->
+                val attendanceForScoreDate = attendanceList.find { attendance ->
+                    attendance.childId == childId && attendance.date == score.date
+                }
+
+                ScoreDetailDialog(
+                    score = score,
+                    attendance = attendanceForScoreDate,
+                    onDismiss = {
+                        selectedScoreDetail = null
+                    }
+                )
             }
         }
     }
@@ -401,10 +439,12 @@ fun RaportMiniStat(
 @Composable
 fun ScoreHistoryItem(
     score: DailyScore,
+    onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Card(
         modifier = modifier.fillMaxWidth(),
+        onClick = onClick,
         shape = RoundedCornerShape(22.dp),
         colors = CardDefaults.cardColors(
             containerColor = Color.White
@@ -469,6 +509,17 @@ fun ScoreHistoryItem(
                         overflow = TextOverflow.Ellipsis
                     )
                 }
+
+                if (!score.imageUrl.isNullOrBlank()) {
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    Text(
+                        text = "Foto aktivitas tersedia",
+                        fontSize = 12.sp,
+                        color = DaycarePrimary,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
             }
 
             Surface(
@@ -492,20 +543,197 @@ fun ScoreHistoryItem(
 }
 
 @Composable
+fun ScoreDetailDialog(
+    score: DailyScore,
+    attendance: Attendance?,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                text = "Detail Nilai Harian",
+                fontWeight = FontWeight.Bold,
+                color = DaycareTextPrimary
+            )
+        },
+        text = {
+            Column {
+                Text(
+                    text = score.activityName,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = DaycareTextPrimary
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Text(
+                    text = "Tanggal: ${score.date}",
+                    fontSize = 13.sp,
+                    color = DaycareTextSecondary
+                )
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                Text(
+                    text = "Score: ${score.score}",
+                    fontSize = 13.sp,
+                    color = DaycareTextSecondary
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Text(
+                    text = "Presensi Hari Itu",
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = DaycareTextPrimary
+                )
+
+                Spacer(modifier = Modifier.height(6.dp))
+
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    color = DaycarePrimaryLight.copy(alpha = 0.55f),
+                    shape = RoundedCornerShape(16.dp),
+                    border = BorderStroke(
+                        width = 1.dp,
+                        color = DaycarePrimary.copy(alpha = 0.12f)
+                    )
+                ) {
+                    Column(
+                        modifier = Modifier.padding(14.dp)
+                    ) {
+                        Text(
+                            text = attendance?.let { statusLabel(it.status) } ?: "Belum ada data presensi",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = if (attendance == null) DaycareTextSecondary else DaycarePrimary
+                        )
+
+                        if (attendance != null) {
+                            Spacer(modifier = Modifier.height(4.dp))
+
+                            Text(
+                                text = "Dicatat pada ${attendance.date}",
+                                fontSize = 12.sp,
+                                color = DaycareTextSecondary
+                            )
+                        }
+                    }
+                }
+
+                if (!score.notes.isNullOrBlank()) {
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Text(
+                        text = "Catatan Guru",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = DaycareTextPrimary
+                    )
+
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    Text(
+                        text = score.notes,
+                        fontSize = 13.sp,
+                        color = DaycareTextSecondary,
+                        lineHeight = 18.sp
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                Text(
+                    text = "Foto Aktivitas",
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = DaycareTextPrimary
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                if (score.imageUrl.isNullOrBlank()) {
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        color = DaycarePrimaryLight.copy(alpha = 0.55f),
+                        shape = RoundedCornerShape(16.dp)
+                    ) {
+                        Text(
+                            text = "Tidak ada foto untuk history ini",
+                            modifier = Modifier.padding(16.dp),
+                            fontSize = 13.sp,
+                            color = DaycareTextSecondary
+                        )
+                    }
+                } else {
+                    AsyncImage(
+                        model = score.imageUrl,
+                        contentDescription = "Foto aktivitas ${score.activityName}",
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(220.dp)
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(DaycarePrimaryLight),
+                        contentScale = ContentScale.Crop
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Text(
+                        text = score.imageUrl,
+                        fontSize = 11.sp,
+                        color = DaycareTextMuted,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text(
+                    text = "Tutup",
+                    color = DaycarePrimary,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+        }
+    )
+}
+
+@Composable
 fun AddDailyScoreForm(
     child: Child,
     scoreViewModel: AdminScoreViewModel,
+    weeklyPlans: List<WeeklyPlan>,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
     val todayDate = remember {
         SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
     }
 
     var date by remember { mutableStateOf(todayDate) }
-    var activityName by remember { mutableStateOf("") }
+    var selectedWeeklyPlan by remember { mutableStateOf<WeeklyPlan?>(null) }
     var selectedScore by remember { mutableStateOf(0) }
     var notes by remember { mutableStateOf("") }
     var message by remember { mutableStateOf<String?>(null) }
+    var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
+    var pendingCameraUri by remember { mutableStateOf<Uri?>(null) }
+
+    val cameraLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicture()
+    ) { success ->
+        if (success) {
+            selectedImageUri = pendingCameraUri
+            message = "Foto aktivitas siap diupload"
+        } else {
+            message = "Pengambilan foto dibatalkan"
+        }
+    }
 
     Card(
         modifier = modifier.fillMaxWidth(),
@@ -572,12 +800,10 @@ fun AddDailyScoreForm(
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            RaportTextField(
-                value = activityName,
-                onValueChange = { activityName = it },
-                label = "Nama Aktivitas",
-                placeholder = "Contoh: Melukis, Puzzle, Membaca Buku",
-                keyboardType = KeyboardType.Text
+            WeeklyPlanActivitySelector(
+                weeklyPlans = weeklyPlans,
+                selectedWeeklyPlan = selectedWeeklyPlan,
+                onPlanSelected = { selectedWeeklyPlan = it }
             )
 
             Spacer(modifier = Modifier.height(18.dp))
@@ -632,6 +858,64 @@ fun AddDailyScoreForm(
 
             Surface(
                 color = DaycarePrimaryLight.copy(alpha = 0.55f),
+                shape = RoundedCornerShape(18.dp),
+                border = BorderStroke(
+                    width = 1.dp,
+                    color = DaycarePrimary.copy(alpha = 0.12f)
+                )
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp)
+                ) {
+                    Text(
+                        text = "Foto Aktivitas",
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = DaycareTextPrimary
+                    )
+
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    Text(
+                        text = if (selectedImageUri == null) {
+                            "Ambil foto langsung dari kamera"
+                        } else {
+                            "Foto sudah dipilih dan akan diupload saat disimpan"
+                        },
+                        fontSize = 12.sp,
+                        color = DaycareTextSecondary
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    OutlinedButton(
+                        onClick = {
+                            val imageUri = createRaportCameraImageUri(context)
+                            pendingCameraUri = imageUri
+                            cameraLauncher.launch(imageUri)
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(50.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        border = BorderStroke(
+                            width = 1.dp,
+                            color = DaycarePrimary
+                        )
+                    ) {
+                        Text(
+                            text = if (selectedImageUri == null) "Ambil Foto" else "Ambil Ulang Foto",
+                            color = DaycarePrimary,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Surface(
+                color = DaycarePrimaryLight.copy(alpha = 0.55f),
                 shape = RoundedCornerShape(18.dp)
             ) {
                 Column(
@@ -679,8 +963,8 @@ fun AddDailyScoreForm(
                         return@Button
                     }
 
-                    if (activityName.isBlank()) {
-                        message = "Nama aktivitas tidak boleh kosong"
+                    if (selectedWeeklyPlan == null) {
+                        message = "Pilih aktivitas dari Weekly Plan terlebih dahulu"
                         return@Button
                     }
 
@@ -693,18 +977,25 @@ fun AddDailyScoreForm(
                         scoreId = UUID.randomUUID().toString(),
                         childId = child.childId,
                         date = date.trim(),
-                        activityName = activityName.trim(),
+                        activityName = selectedWeeklyPlan?.description.orEmpty(),
                         score = selectedScore,
-                        notes = notes.ifBlank { null }
+                        notes = notes.ifBlank { null },
+                        imageUrl = null
                     )
 
-                    scoreViewModel.addScore(dailyScore)
+                    scoreViewModel.addScore(dailyScore, selectedImageUri)
 
-                    message = "Nilai harian berhasil disimpan"
+                    message = if (selectedImageUri == null) {
+                        "Nilai harian berhasil disimpan"
+                    } else {
+                        "Nilai harian dan foto berhasil disimpan"
+                    }
 
-                    activityName = ""
+                    selectedWeeklyPlan = null
                     selectedScore = 0
                     notes = ""
+                    selectedImageUri = null
+                    pendingCameraUri = null
                 },
                 modifier = Modifier
                     .fillMaxWidth()
@@ -757,6 +1048,82 @@ fun ScoreSelector(
                         fontWeight = FontWeight.Bold,
                         color = if (selectedScore == score) Color.White else DaycarePrimary
                     )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun WeeklyPlanActivitySelector(
+    weeklyPlans: List<WeeklyPlan>,
+    selectedWeeklyPlan: WeeklyPlan?,
+    onPlanSelected: (WeeklyPlan) -> Unit
+) {
+    Text(
+        text = "Aktivitas dari Weekly Plan",
+        fontSize = 14.sp,
+        fontWeight = FontWeight.SemiBold,
+        color = DaycareTextPrimary
+    )
+
+    Spacer(modifier = Modifier.height(10.dp))
+
+    if (weeklyPlans.isEmpty()) {
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            color = DaycarePrimaryLight.copy(alpha = 0.55f),
+            shape = RoundedCornerShape(18.dp),
+            border = BorderStroke(
+                width = 1.dp,
+                color = DaycarePrimary.copy(alpha = 0.12f)
+            )
+        ) {
+            Text(
+                text = "Belum ada Weekly Plan. Tambahkan dulu di menu Classroom.",
+                modifier = Modifier.padding(16.dp),
+                fontSize = 13.sp,
+                color = DaycareTextSecondary
+            )
+        }
+    } else {
+        Column(
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            weeklyPlans.forEach { plan ->
+                val selected = selectedWeeklyPlan?.planId == plan.planId
+
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    onClick = { onPlanSelected(plan) },
+                    color = if (selected) DaycarePrimary else DaycarePrimaryLight.copy(alpha = 0.55f),
+                    shape = RoundedCornerShape(18.dp),
+                    border = BorderStroke(
+                        width = 1.dp,
+                        color = if (selected) DaycarePrimary else DaycarePrimary.copy(alpha = 0.12f)
+                    )
+                ) {
+                    Column(
+                        modifier = Modifier.padding(14.dp)
+                    ) {
+                        Text(
+                            text = "${plan.startDate} - ${plan.endDate}",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = if (selected) Color.White.copy(alpha = 0.88f) else DaycarePrimary
+                        )
+
+                        Spacer(modifier = Modifier.height(5.dp))
+
+                        Text(
+                            text = plan.description,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = if (selected) Color.White else DaycareTextPrimary,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
                 }
             }
         }
@@ -832,5 +1199,32 @@ fun EmptyScoreCard(
                 color = DaycareTextSecondary
             )
         }
+    }
+}
+
+fun createRaportCameraImageUri(context: android.content.Context): Uri {
+    val imageDir = File(context.cacheDir, "images")
+    imageDir.mkdirs()
+
+    val imageFile = File.createTempFile(
+        "raport_${System.currentTimeMillis()}_",
+        ".jpg",
+        imageDir
+    )
+
+    return FileProvider.getUriForFile(
+        context,
+        "${context.packageName}.fileprovider",
+        imageFile
+    )
+}
+
+fun statusLabel(status: String): String {
+    return when (status) {
+        AttendanceStatus.PRESENT.value -> AttendanceStatus.PRESENT.label
+        AttendanceStatus.SICK.value -> AttendanceStatus.SICK.label
+        AttendanceStatus.PERMISSION.value -> AttendanceStatus.PERMISSION.label
+        AttendanceStatus.ABSENT.value -> AttendanceStatus.ABSENT.label
+        else -> status
     }
 }

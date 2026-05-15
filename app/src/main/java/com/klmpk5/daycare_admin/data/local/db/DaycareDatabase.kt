@@ -19,7 +19,7 @@ import com.klmpk5.daycare_admin.data.local.entities.WeeklyPlan
         Attendance::class
 
     ],
-    version = 3,
+    version = 5,
     exportSchema = false
 )
 abstract class DaycareDatabase : RoomDatabase() {
