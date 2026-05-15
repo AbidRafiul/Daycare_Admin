@@ -26,7 +26,9 @@ import com.klmpk5.daycare_admin.ui.theme.DaycarePrimaryLight
 import com.klmpk5.daycare_admin.ui.theme.DaycareTextMuted
 import com.klmpk5.daycare_admin.ui.theme.DaycareTextPrimary
 import com.klmpk5.daycare_admin.ui.theme.DaycareTextSecondary
+import com.klmpk5.daycare_admin.ui.theme.screen.weeklyplan.WeeklyPlanScreen
 import com.klmpk5.daycare_admin.viewmodel.AdminChildViewModel
+import com.klmpk5.daycare_admin.viewmodel.AdminWeeklyPlanViewModel
 import com.klmpk5.daycare_admin.viewmodel.AttendanceViewModel
 import java.util.UUID
 
@@ -45,10 +47,13 @@ import java.util.UUID
 @Composable
 fun ClassroomScreen(
     adminChildViewModel: AdminChildViewModel,
-    attendanceViewModel: AttendanceViewModel
-
+    attendanceViewModel: AttendanceViewModel,
+    weeklyPlanViewModel: AdminWeeklyPlanViewModel
 ) {
     var selectedMenu by remember { mutableStateOf(ClassroomMenu.MASTER_DATA) }
+
+
+
     var selectedChildForEdit by remember { mutableStateOf<Child?>(null) }
 
     Scaffold(
@@ -118,14 +123,8 @@ fun ClassroomScreen(
                     }
 
                     ClassroomMenu.WEEKLY_PLAN -> {
-                        ClassroomComingSoonCard(
-                            title = "Weekly Plan",
-                            description = "Buat dan atur rencana kegiatan mingguan sesuai hari masuk daycare.",
-                            emoji = "📅",
-                            buttonText = "Kelola Weekly Plan",
-                            modifier = Modifier
-                                .padding(horizontal = 20.dp)
-                                .offset(y = (-34).dp)
+                        WeeklyPlanScreen(
+                            weeklyPlanViewModel = weeklyPlanViewModel
                         )
                     }
 
