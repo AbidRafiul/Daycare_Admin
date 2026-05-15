@@ -1,4 +1,4 @@
-package com.klmpk5.daycare_admin.ui.theme.screen.login.classroom
+package com.klmpk5.daycare_admin.ui.theme.screen.classroom
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -24,7 +24,6 @@ import com.klmpk5.daycare_admin.ui.theme.DaycareBackground
 import com.klmpk5.daycare_admin.ui.theme.DaycareBorder
 import com.klmpk5.daycare_admin.ui.theme.DaycarePrimary
 import com.klmpk5.daycare_admin.ui.theme.DaycarePrimaryLight
-import com.klmpk5.daycare_admin.ui.theme.DaycareTextMuted
 import com.klmpk5.daycare_admin.ui.theme.DaycareTextPrimary
 import com.klmpk5.daycare_admin.ui.theme.DaycareTextSecondary
 import com.klmpk5.daycare_admin.viewmodel.AdminChildViewModel
@@ -33,7 +32,6 @@ import com.klmpk5.daycare_admin.viewmodel.AttendanceViewModel
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-import java.util.UUID
 
 /**
  * AttendanceScreen adalah halaman untuk mengisi presensi anak.
