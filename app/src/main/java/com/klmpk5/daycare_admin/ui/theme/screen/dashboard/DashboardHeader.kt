@@ -99,24 +99,6 @@ fun DashboardHeader() {
                 )
             }
 
-            Box(
-                modifier = Modifier
-                    .size(46.dp)
-                    .background(
-                        color = Color.White.copy(alpha = 0.16f),
-                        shape = CircleShape
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(text = "🔔", fontSize = 23.sp)
-                Box(
-                    modifier = Modifier
-                        .size(10.dp)
-                        .align(Alignment.TopEnd)
-                        .offset(x = (-8).dp, y = 7.dp)
-                        .background(color = Color(0xFFFF5A5F), shape = CircleShape)
-                )
-            }
         }
     }
 }

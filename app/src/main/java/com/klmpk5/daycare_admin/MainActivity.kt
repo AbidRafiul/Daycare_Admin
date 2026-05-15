@@ -17,6 +17,7 @@ import com.klmpk5.daycare_admin.viewmodel.AttendanceViewModel
 import com.klmpk5.daycare_admin.viewmodel.AttendanceViewModelFactory
 import com.klmpk5.daycare_admin.viewmodel.LoginViewModel
 import com.klmpk5.daycare_admin.viewmodel.LoginViewModelFactory
+import com.klmpk5.daycare_admin.viewmodel.ProfileViewModel
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -48,12 +49,15 @@ class MainActivity : ComponentActivity() {
                 factory = AdminScoreViewModelFactory(app.scoreRepository)
             )
 
+            val profileViewModel: ProfileViewModel = viewModel()
+
             AppNavigation(
                 loginViewModel = loginViewModel,
                 adminChildViewModel = adminChildViewModel,
                 attendanceViewModel = attendanceViewModel,
                 weeklyPlanViewModel = weeklyPlanViewModel,
-                scoreViewModel = scoreViewModel
+                scoreViewModel = scoreViewModel,
+                profileViewModel = profileViewModel
             )
         }
     }

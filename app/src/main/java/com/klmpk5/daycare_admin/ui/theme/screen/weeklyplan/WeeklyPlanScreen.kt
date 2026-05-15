@@ -39,7 +39,6 @@ fun WeeklyPlanScreen(
     var startDate by remember { mutableStateOf("") }
     var endDate by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
-    var imageUrl by remember { mutableStateOf("") }
     var message by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(saveState) {
@@ -51,7 +50,6 @@ fun WeeklyPlanScreen(
                 startDate = ""
                 endDate = ""
                 description = ""
-                imageUrl = ""
             }
 
             is WeeklyPlanSaveState.Error -> {
@@ -78,8 +76,6 @@ fun WeeklyPlanScreen(
             onEndDateChange = { endDate = it },
             description = description,
             onDescriptionChange = { description = it },
-            imageUrl = imageUrl,
-            onImageUrlChange = { imageUrl = it },
             saveState = saveState,
             message = message,
             onSaveClick = {
@@ -102,8 +98,7 @@ fun WeeklyPlanScreen(
                     planId = UUID.randomUUID().toString(),
                     startDate = startDate.trim(),
                     endDate = endDate.trim(),
-                    description = description.trim(),
-                    imageUrl = imageUrl.ifBlank { null }
+                    description = description.trim()
                 )
 
                 weeklyPlanViewModel.addWeeklyPlan(plan)
@@ -183,7 +178,7 @@ fun WeeklyPlanHeader() {
             Spacer(modifier = Modifier.height(6.dp))
 
             Text(
-                text = "Kelola rencana kegiatan mingguan dan dokumentasi aktivitas",
+                text = "Kelola rencana kegiatan mingguan daycare",
                 color = Color.White.copy(alpha = 0.90f),
                 fontSize = 14.sp,
                 lineHeight = 20.sp
@@ -217,8 +212,6 @@ fun WeeklyPlanFormCard(
     onEndDateChange: (String) -> Unit,
     description: String,
     onDescriptionChange: (String) -> Unit,
-    imageUrl: String,
-    onImageUrlChange: (String) -> Unit,
     saveState: WeeklyPlanSaveState,
     message: String?,
     onSaveClick: () -> Unit,
@@ -294,79 +287,6 @@ fun WeeklyPlanFormCard(
                     cursorColor = DaycarePrimary
                 )
             )
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            WeeklySectionTitle(
-                emoji = "📷",
-                title = "Foto Aktivitas",
-                subtitle = "Masukkan URL gambar aktivitas atau dokumentasi"
-            )
-
-            Spacer(modifier = Modifier.height(14.dp))
-
-            Surface(
-                color = DaycarePrimaryLight.copy(alpha = 0.50f),
-                shape = RoundedCornerShape(20.dp),
-                border = BorderStroke(
-                    width = 1.dp,
-                    color = DaycarePrimary.copy(alpha = 0.15f)
-                )
-            ) {
-                Column(
-                    modifier = Modifier.padding(18.dp)
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(48.dp)
-                                .background(
-                                    color = Color.White,
-                                    shape = CircleShape
-                                ),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = "☁️",
-                                fontSize = 24.sp
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.width(12.dp))
-
-                        Column(
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Text(
-                                text = "Upload Foto Aktivitas",
-                                fontSize = 15.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = DaycareTextPrimary
-                            )
-
-                            Spacer(modifier = Modifier.height(3.dp))
-
-                            Text(
-                                text = "Untuk saat ini masukkan URL gambar",
-                                fontSize = 12.sp,
-                                color = DaycareTextSecondary
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(14.dp))
-
-                    WeeklyPlanTextField(
-                        value = imageUrl,
-                        onValueChange = onImageUrlChange,
-                        label = "Image URL",
-                        placeholder = "https://example.com/activity.jpg",
-                        keyboardType = KeyboardType.Uri
-                    )
-                }
-            }
 
             Spacer(modifier = Modifier.height(18.dp))
 
@@ -579,7 +499,7 @@ fun WeeklyPlanItemCard(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = if (plan.imageUrl.isNullOrBlank()) "📅" else "🖼️",
+                    text = "📅",
                     fontSize = 27.sp
                 )
             }
@@ -606,16 +526,6 @@ fun WeeklyPlanItemCard(
                     overflow = TextOverflow.Ellipsis
                 )
 
-                if (!plan.imageUrl.isNullOrBlank()) {
-                    Spacer(modifier = Modifier.height(5.dp))
-
-                    Text(
-                        text = "Foto tersedia",
-                        fontSize = 12.sp,
-                        color = DaycarePrimary,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
             }
 
             Text(

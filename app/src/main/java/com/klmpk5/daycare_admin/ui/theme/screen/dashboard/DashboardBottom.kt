@@ -43,10 +43,16 @@ fun DashboardBottomNavigation(navController: NavController) {
             .height(82.dp)
     ) {
         navItems.forEach { item ->
+            val selected = when {
+                currentRoute?.startsWith("raport_history") == true -> item.route == "raport"
+                currentRoute?.startsWith("profile/") == true -> item.route == "profile"
+                else -> currentRoute == item.route
+            }
+
             DashboardNavItem(
                 icon = item.icon,
                 label = item.label,
-                selected = currentRoute == item.route,
+                selected = selected,
                 onClick = {
                     navController.navigate(item.route) {
                         popUpTo("dashboard") { saveState = true }

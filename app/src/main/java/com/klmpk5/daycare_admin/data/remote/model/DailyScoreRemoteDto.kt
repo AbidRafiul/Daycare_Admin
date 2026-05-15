@@ -8,7 +8,8 @@ data class DailyScoreRemoteDto(
     val date: String = "",
     val activityName: String = "",
     val score: Int = 0,
-    val notes: String? = null
+    val notes: String? = null,
+    val imageUrl: String? = null
 ) {
     fun toEntity(): DailyScore {
         return DailyScore(
@@ -17,7 +18,8 @@ data class DailyScoreRemoteDto(
             date = this.date,
             activityName = this.activityName,
             score = this.score,
-            notes = this.notes
+            notes = this.notes,
+            imageUrl = this.imageUrl
         )
     }
 }

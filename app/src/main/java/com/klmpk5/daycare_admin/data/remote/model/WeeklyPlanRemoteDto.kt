@@ -6,16 +6,14 @@ data class WeeklyPlanRemoteDto(
     var planId: String = "", // var agar bisa diisi ID otomatis dari Firebase
     val startDate: String = "",
     val endDate: String = "",
-    val description: String = "",
-    val imageUrl: String? = null
+    val description: String = ""
 ) {
     fun toEntity(): WeeklyPlan {
         return WeeklyPlan(
             planId = this.planId,
             startDate = this.startDate,
             endDate = this.endDate,
-            description = this.description,
-            imageUrl = this.imageUrl
+            description = this.description
         )
     }
 }

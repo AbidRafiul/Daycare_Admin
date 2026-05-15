@@ -38,7 +38,7 @@ class App : Application() {
     }
 
     val scoreRepository by lazy {
-        ScoreRepository(database.scoreDao(), firebaseService)
+        ScoreRepository(database.scoreDao(), firebaseService, cloudinaryService)
     }
 
     override fun onCreate() {

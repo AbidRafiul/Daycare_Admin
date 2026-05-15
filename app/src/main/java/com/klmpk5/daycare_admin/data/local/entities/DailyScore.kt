@@ -10,5 +10,6 @@ data class DailyScore(
     val date: String,
     val activityName: String,
     val score: Int,
-    val notes: String?
+    val notes: String?,
+    val imageUrl: String? = null
 )
