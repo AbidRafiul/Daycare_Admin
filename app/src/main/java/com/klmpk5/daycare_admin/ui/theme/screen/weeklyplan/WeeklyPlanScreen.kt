@@ -3,8 +3,6 @@ package com.klmpk5.daycare_admin.ui.theme.screen.weeklyplan
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -65,99 +63,80 @@ fun WeeklyPlanScreen(
         }
     }
 
-    Scaffold(
-        containerColor = DaycareBackground
-    ) { innerPadding ->
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(DaycareBackground)
+            .padding(bottom = 24.dp)
+    ) {
+        WeeklyPlanHeader()
 
-        LazyColumn(
+        WeeklyPlanFormCard(
+            startDate = startDate,
+            onStartDateChange = { startDate = it },
+            endDate = endDate,
+            onEndDateChange = { endDate = it },
+            description = description,
+            onDescriptionChange = { description = it },
+            imageUrl = imageUrl,
+            onImageUrlChange = { imageUrl = it },
+            saveState = saveState,
+            message = message,
+            onSaveClick = {
+                if (startDate.isBlank()) {
+                    message = "Tanggal mulai tidak boleh kosong"
+                    return@WeeklyPlanFormCard
+                }
+
+                if (endDate.isBlank()) {
+                    message = "Tanggal selesai tidak boleh kosong"
+                    return@WeeklyPlanFormCard
+                }
+
+                if (description.isBlank()) {
+                    message = "Deskripsi kegiatan tidak boleh kosong"
+                    return@WeeklyPlanFormCard
+                }
+
+                val plan = WeeklyPlan(
+                    planId = UUID.randomUUID().toString(),
+                    startDate = startDate.trim(),
+                    endDate = endDate.trim(),
+                    description = description.trim(),
+                    imageUrl = imageUrl.ifBlank { null }
+                )
+
+                weeklyPlanViewModel.addWeeklyPlan(plan)
+            },
             modifier = Modifier
-                .fillMaxSize()
-                .background(DaycareBackground)
-                .padding(innerPadding),
-            contentPadding = PaddingValues(bottom = 24.dp)
-        ) {
-            item {
-                WeeklyPlanHeader()
-            }
+                .padding(horizontal = 20.dp)
+                .offset(y = (-36).dp)
+        )
 
-            item {
-                WeeklyPlanFormCard(
-                    startDate = startDate,
-                    onStartDateChange = { startDate = it },
-                    endDate = endDate,
-                    onEndDateChange = { endDate = it },
-                    description = description,
-                    onDescriptionChange = { description = it },
-                    imageUrl = imageUrl,
-                    onImageUrlChange = { imageUrl = it },
-                    saveState = saveState,
-                    message = message,
-                    onSaveClick = {
-                        if (startDate.isBlank()) {
-                            message = "Tanggal mulai tidak boleh kosong"
-                            return@WeeklyPlanFormCard
-                        }
+        Spacer(modifier = Modifier.height(4.dp))
 
-                        if (endDate.isBlank()) {
-                            message = "Tanggal selesai tidak boleh kosong"
-                            return@WeeklyPlanFormCard
-                        }
+        WeeklyPlanListHeader(
+            total = weeklyPlans.size,
+            modifier = Modifier
+                .padding(horizontal = 20.dp)
+                .offset(y = (-36).dp)
+        )
 
-                        if (description.isBlank()) {
-                            message = "Deskripsi kegiatan tidak boleh kosong"
-                            return@WeeklyPlanFormCard
-                        }
-
-                        val plan = WeeklyPlan(
-                            planId = UUID.randomUUID().toString(),
-                            startDate = startDate.trim(),
-                            endDate = endDate.trim(),
-                            description = description.trim(),
-                            imageUrl = imageUrl.ifBlank { null }
-                        )
-
-                        weeklyPlanViewModel.addWeeklyPlan(plan)
-                    },
+        if (weeklyPlans.isEmpty()) {
+            EmptyWeeklyPlanCard(
+                modifier = Modifier
+                    .padding(horizontal = 20.dp)
+                    .offset(y = (-36).dp)
+            )
+        } else {
+            weeklyPlans.forEach { plan ->
+                WeeklyPlanItemCard(
+                    plan = plan,
                     modifier = Modifier
                         .padding(horizontal = 20.dp)
+                        .padding(bottom = 12.dp)
                         .offset(y = (-36).dp)
                 )
-            }
-
-            item {
-                Spacer(modifier = Modifier.height(4.dp))
-            }
-
-            item {
-                WeeklyPlanListHeader(
-                    total = weeklyPlans.size,
-                    modifier = Modifier
-                        .padding(horizontal = 20.dp)
-                        .offset(y = (-36).dp)
-                )
-            }
-
-            if (weeklyPlans.isEmpty()) {
-                item {
-                    EmptyWeeklyPlanCard(
-                        modifier = Modifier
-                            .padding(horizontal = 20.dp)
-                            .offset(y = (-36).dp)
-                    )
-                }
-            } else {
-                items(
-                    items = weeklyPlans,
-                    key = { it.planId }
-                ) { plan ->
-                    WeeklyPlanItemCard(
-                        plan = plan,
-                        modifier = Modifier
-                            .padding(horizontal = 20.dp)
-                            .padding(bottom = 12.dp)
-                            .offset(y = (-36).dp)
-                    )
-                }
             }
         }
     }

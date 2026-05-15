@@ -3,8 +3,6 @@ package com.klmpk5.daycare_admin.ui.theme.screen.classroom
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -76,112 +74,91 @@ fun AttendanceScreen(
         attendanceViewModel.setDate(todayDate)
     }
 
-    Scaffold(
-        containerColor = DaycareBackground
-    ) { innerPadding ->
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(DaycareBackground)
+            .padding(bottom = 24.dp)
+    ) {
+        AttendanceHeader()
 
-        LazyColumn(
+        AttendanceSummaryCard(
+            totalChildren = children.size,
+            selectedCount = selectedStatuses.size,
+            readableDate = readableDate,
             modifier = Modifier
-                .fillMaxSize()
-                .background(DaycareBackground)
-                .padding(innerPadding),
-            contentPadding = PaddingValues(bottom = 24.dp)
-        ) {
-            item {
-                AttendanceHeader()
-            }
+                .padding(horizontal = 20.dp)
+                .offset(y = (-36).dp)
+        )
 
-            item {
-                AttendanceSummaryCard(
-                    totalChildren = children.size,
-                    selectedCount = selectedStatuses.size,
-                    readableDate = readableDate,
+        Spacer(modifier = Modifier.height(4.dp))
+
+        if (children.isEmpty()) {
+            EmptyAttendanceCard(
+                modifier = Modifier
+                    .padding(horizontal = 20.dp)
+                    .offset(y = (-36).dp)
+            )
+        } else {
+            children.filter { it.isActive }.forEach { child ->
+                AttendanceChildItem(
+                    child = child,
+                    selectedStatus = selectedStatuses[child.childId],
+                    note = noteMap[child.childId].orEmpty(),
+                    onStatusSelected = { status ->
+                        selectedStatuses = selectedStatuses + (child.childId to status)
+                    },
+                    onNoteChange = { note ->
+                        noteMap = noteMap + (child.childId to note)
+                    },
                     modifier = Modifier
                         .padding(horizontal = 20.dp)
+                        .padding(bottom = 14.dp)
                         .offset(y = (-36).dp)
                 )
             }
 
-            item {
-                Spacer(modifier = Modifier.height(4.dp))
-            }
+            SaveAttendanceButton(
+                enabled = selectedStatuses.isNotEmpty(),
+                isLoading = saveState is AttendanceSaveState.Loading,
+                onClick = {
+                    children
+                        .filter { it.isActive }
+                        .forEach { child ->
+                            val status = selectedStatuses[child.childId]
 
-            if (children.isEmpty()) {
-                item {
-                    EmptyAttendanceCard(
-                        modifier = Modifier
-                            .padding(horizontal = 20.dp)
-                            .offset(y = (-36).dp)
-                    )
-                }
-            } else {
-                items(
-                    items = children.filter { it.isActive },
-                    key = { it.childId }
-                ) { child ->
-                    AttendanceChildItem(
-                        child = child,
-                        selectedStatus = selectedStatuses[child.childId],
-                        note = noteMap[child.childId].orEmpty(),
-                        onStatusSelected = { status ->
-                            selectedStatuses = selectedStatuses + (child.childId to status)
-                        },
-                        onNoteChange = { note ->
-                            noteMap = noteMap + (child.childId to note)
-                        },
-                        modifier = Modifier
-                            .padding(horizontal = 20.dp)
-                            .padding(bottom = 14.dp)
-                            .offset(y = (-36).dp)
-                    )
-                }
+                            if (status != null) {
+                                val now = System.currentTimeMillis()
 
-                item {
-                    SaveAttendanceButton(
-                        enabled = selectedStatuses.isNotEmpty(),
-                        isLoading = saveState is AttendanceSaveState.Loading,
-                        onClick = {
-                            children
-                                .filter { it.isActive }
-                                .forEach { child ->
-                                    val status = selectedStatuses[child.childId]
+                                val attendance = Attendance(
+                                    attendanceId = "${child.childId}_$todayDate",
+                                    attendanceIdRemote = null,
+                                    childId = child.childId,
+                                    childName = child.fullName,
+                                    date = todayDate,
+                                    status = status,
+                                    recordedBy = null,
+                                    createdAt = now,
+                                    updatedAt = now
+                                )
 
-                                    if (status != null) {
-                                        val now = System.currentTimeMillis()
-
-                                        val attendance = Attendance(
-                                            attendanceId = "${child.childId}_$todayDate",
-                                            attendanceIdRemote = null,
-                                            childId = child.childId,
-                                            childName = child.fullName,
-                                            date = todayDate,
-                                            status = status,
-                                            recordedBy = null,
-                                            createdAt = now,
-                                            updatedAt = now
-                                        )
-
-                                        attendanceViewModel.saveAttendance(attendance)
-                                    }
-                                }
-                        },
-                        modifier = Modifier
-                            .padding(horizontal = 20.dp)
-                            .offset(y = (-24).dp)
-                    )
-                }
-            }
-
-            item {
-                AttendanceSaveMessage(
-                    saveState = saveState,
-                    onReset = {
-                        attendanceViewModel.resetSaveState()
-                    },
-                    modifier = Modifier.padding(horizontal = 20.dp)
-                )
-            }
+                                attendanceViewModel.saveAttendance(attendance)
+                            }
+                        }
+                },
+                modifier = Modifier
+                    .padding(horizontal = 20.dp)
+                    .offset(y = (-24).dp)
+            )
         }
+
+        AttendanceSaveMessage(
+            saveState = saveState,
+            onReset = {
+                attendanceViewModel.resetSaveState()
+            },
+            modifier = Modifier.padding(horizontal = 20.dp)
+        )
     }
 }
 
