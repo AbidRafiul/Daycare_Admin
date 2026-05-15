@@ -8,6 +8,7 @@ import com.klmpk5.daycare_admin.ui.theme.screen.login.LoginScreen
 import com.klmpk5.daycare_admin.ui.theme.screen.login.classroom.ClassroomScreen
 import com.klmpk5.daycare_admin.ui.theme.screen.login.dashboard.DashboardScreen
 import com.klmpk5.daycare_admin.viewmodel.AdminChildViewModel
+import com.klmpk5.daycare_admin.viewmodel.AdminWeeklyPlanViewModel
 import com.klmpk5.daycare_admin.viewmodel.AttendanceViewModel
 import com.klmpk5.daycare_admin.viewmodel.LoginViewModel
 
@@ -15,7 +16,8 @@ import com.klmpk5.daycare_admin.viewmodel.LoginViewModel
 fun AppNavigation(
     loginViewModel: LoginViewModel,
     adminChildViewModel: AdminChildViewModel,
-    attendanceViewModel: AttendanceViewModel
+    attendanceViewModel: AttendanceViewModel,
+    weeklyPlanViewModel: AdminWeeklyPlanViewModel
 ) {
     val navController = rememberNavController()
 
@@ -40,12 +42,12 @@ fun AppNavigation(
             DashboardScreen()
         }
 
-        composable ("classroom"){
+        composable("classroom") {
             ClassroomScreen(
                 adminChildViewModel = adminChildViewModel,
-                attendanceViewModel = attendanceViewModel
+                attendanceViewModel = attendanceViewModel,
+                weeklyPlanViewModel = weeklyPlanViewModel
             )
         }
-
     }
 }
