@@ -1,5 +1,6 @@
 package com.klmpk5.daycare_admin.viewmodel
 
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -24,9 +25,9 @@ class AdminScoreViewModel(
         }
     }
 
-    fun addScore(score: DailyScore) {
+    fun addScore(score: DailyScore, imageUri: Uri? = null) {
         viewModelScope.launch {
-            repository.addScore(score)
+            repository.addScore(score, imageUri)
         }
     }
 }
