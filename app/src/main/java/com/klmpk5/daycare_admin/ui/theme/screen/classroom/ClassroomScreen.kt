@@ -1,4 +1,4 @@
-package com.klmpk5.daycare_admin.ui.theme.screen.login.classroom
+package com.klmpk5.daycare_admin.ui.theme.screen.classroom
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
