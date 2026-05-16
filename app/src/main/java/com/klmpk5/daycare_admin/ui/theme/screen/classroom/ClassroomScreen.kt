@@ -49,7 +49,7 @@ fun ClassroomScreen(
     attendanceViewModel: AttendanceViewModel,
     weeklyPlanViewModel: AdminWeeklyPlanViewModel
 ) {
-    var selectedMenu by remember { mutableStateOf(ClassroomMenu.MASTER_DATA) }
+    var selectedMenu by remember { mutableStateOf<ClassroomMenu?>(null) }
     var masterDataPage by remember { mutableStateOf(MasterDataPage.LIST) }
     var selectedChildForEdit by remember { mutableStateOf<Child?>(null) }
 
@@ -65,79 +65,97 @@ fun ClassroomScreen(
                 .padding(innerPadding),
             contentPadding = PaddingValues(bottom = 24.dp)
         ) {
-            if (selectedMenu == ClassroomMenu.MASTER_DATA && masterDataPage == MasterDataPage.FORM) {
-                item {
-                    ChildFormPageHeader(
-                        title = if (selectedChildForEdit == null) "Tambah Anak" else "Edit Anak",
-                        subtitle = if (selectedChildForEdit == null) {
-                            "Isi data anak baru"
-                        } else {
-                            "Perbarui data anak"
-                        },
-                        onBack = {
-                            selectedChildForEdit = null
-                            masterDataPage = MasterDataPage.LIST
-                        }
-                    )
-                }
-
-                item {
-                    MasterDataChildForm(
-                        adminChildViewModel = adminChildViewModel,
-                        selectedChild = selectedChildForEdit,
-                        onBackToList = {
-                            selectedChildForEdit = null
-                            masterDataPage = MasterDataPage.LIST
-                        },
-                        onSaveComplete = {
-                            selectedChildForEdit = null
-                            masterDataPage = MasterDataPage.LIST
-                        },
-                        modifier = Modifier
-                            .padding(horizontal = 20.dp)
-                            .offset(y = (-34).dp)
-                    )
-                }
-            } else {
-                item {
-                    ClassroomHeader()
-                }
-
-                item {
-                    ClassroomMenuGrid(
-                        selectedMenu = selectedMenu,
-                        onMenuClick = { menu ->
-                            selectedMenu = menu
-                            if (menu == ClassroomMenu.MASTER_DATA) {
+            when {
+                selectedMenu == ClassroomMenu.MASTER_DATA &&
+                    masterDataPage == MasterDataPage.FORM -> {
+                    item {
+                        ChildPageHeader(
+                            title = if (selectedChildForEdit == null) "Tambah Anak" else "Edit Anak",
+                            subtitle = if (selectedChildForEdit == null) {
+                                "Isi data anak baru"
+                            } else {
+                                "Perbarui data anak"
+                            },
+                            onBack = {
                                 selectedChildForEdit = null
                                 masterDataPage = MasterDataPage.LIST
                             }
-                        },
-                        modifier = Modifier
-                            .padding(horizontal = 20.dp)
-                            .offset(y = (-34).dp)
-                    )
+                        )
+                    }
+
+                    item {
+                        MasterDataChildForm(
+                            adminChildViewModel = adminChildViewModel,
+                            selectedChild = selectedChildForEdit,
+                            onBackToList = {
+                                selectedChildForEdit = null
+                                masterDataPage = MasterDataPage.LIST
+                            },
+                            onSaveComplete = {
+                                selectedChildForEdit = null
+                                masterDataPage = MasterDataPage.LIST
+                            },
+                            modifier = Modifier
+                                .padding(horizontal = 20.dp)
+                                .offset(y = (-34).dp)
+                        )
+                    }
                 }
 
-                item {
-                    when (selectedMenu) {
-                        ClassroomMenu.MASTER_DATA -> {
-                            ChildListSection(
-                                adminChildViewModel = adminChildViewModel,
-                                onAddClick = {
-                                    selectedChildForEdit = null
-                                    masterDataPage = MasterDataPage.FORM
-                                },
-                                onEditClick = { child ->
-                                    selectedChildForEdit = child
-                                    masterDataPage = MasterDataPage.FORM
-                                },
-                                modifier = Modifier
-                                    .padding(horizontal = 20.dp)
-                                    .offset(y = (-34).dp)
-                            )
-                        }
+                selectedMenu == ClassroomMenu.MASTER_DATA -> {
+                    item {
+                        ChildPageHeader(
+                            title = "Daftar Anak",
+                            subtitle = "Kelola master data anak daycare",
+                            onBack = {
+                                selectedChildForEdit = null
+                                masterDataPage = MasterDataPage.LIST
+                                selectedMenu = null
+                            }
+                        )
+                    }
 
+                    item {
+                        ChildListSection(
+                            adminChildViewModel = adminChildViewModel,
+                            onAddClick = {
+                                selectedChildForEdit = null
+                                masterDataPage = MasterDataPage.FORM
+                            },
+                            onEditClick = { child ->
+                                selectedChildForEdit = child
+                                masterDataPage = MasterDataPage.FORM
+                            },
+                            modifier = Modifier
+                                .padding(horizontal = 20.dp)
+                                .offset(y = (-34).dp)
+                        )
+                    }
+                }
+
+                else -> {
+                    item {
+                        ClassroomHeader()
+                    }
+
+                    item {
+                        ClassroomMenuGrid(
+                            selectedMenu = selectedMenu,
+                            onMenuClick = { menu ->
+                                selectedMenu = menu
+                                if (menu == ClassroomMenu.MASTER_DATA) {
+                                    selectedChildForEdit = null
+                                    masterDataPage = MasterDataPage.LIST
+                                }
+                            },
+                            modifier = Modifier
+                                .padding(horizontal = 20.dp)
+                                .offset(y = (-34).dp)
+                        )
+                    }
+
+                    item {
+                        when (selectedMenu) {
                         ClassroomMenu.ATTENDANCE -> {
                             AttendanceScreen(
                                 adminChildViewModel = adminChildViewModel,
@@ -150,6 +168,9 @@ fun ClassroomScreen(
                             WeeklyPlanScreen(
                                 weeklyPlanViewModel = weeklyPlanViewModel
                             )
+                        }
+
+                            else -> Unit
                         }
                     }
                 }
@@ -166,7 +187,7 @@ fun ClassroomHeader() {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(190.dp)
+            .height(164.dp)
             .background(
                 Brush.verticalGradient(
                     colors = listOf(
@@ -204,7 +225,7 @@ fun ClassroomHeader() {
         Column(
             modifier = Modifier
                 .align(Alignment.CenterStart)
-                .offset(y = (-12).dp)
+                .offset(y = (-22).dp)
         ) {
             Text(
                 text = "Classroom",
@@ -227,7 +248,7 @@ fun ClassroomHeader() {
 }
 
 @Composable
-fun ChildFormPageHeader(
+fun ChildPageHeader(
     title: String,
     subtitle: String,
     onBack: () -> Unit
@@ -235,7 +256,7 @@ fun ChildFormPageHeader(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(190.dp)
+            .height(164.dp)
             .background(
                 Brush.verticalGradient(
                     colors = listOf(
@@ -250,7 +271,7 @@ fun ChildFormPageHeader(
         Surface(
             modifier = Modifier
                 .align(Alignment.TopStart)
-                .padding(top = 16.dp)
+                .padding(top = 8.dp)
                 .size(42.dp),
             onClick = onBack,
             color = Color.White.copy(alpha = 0.16f),
@@ -269,7 +290,7 @@ fun ChildFormPageHeader(
         Column(
             modifier = Modifier
                 .align(Alignment.CenterStart)
-                .offset(y = (-12).dp)
+                .offset(y = (-22).dp)
         ) {
             Text(
                 text = title,
@@ -297,7 +318,7 @@ fun ChildFormPageHeader(
  */
 @Composable
 fun ClassroomMenuGrid(
-    selectedMenu: ClassroomMenu,
+    selectedMenu: ClassroomMenu?,
     onMenuClick: (ClassroomMenu) -> Unit,
     modifier: Modifier = Modifier
 ) {

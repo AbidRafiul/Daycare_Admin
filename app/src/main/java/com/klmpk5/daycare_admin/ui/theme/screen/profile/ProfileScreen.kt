@@ -159,7 +159,7 @@ fun ProfileHeader(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(210.dp)
+            .height(176.dp)
             .background(
                 Brush.verticalGradient(
                     colors = listOf(
@@ -185,7 +185,7 @@ fun ProfileHeader(
         Column(
             modifier = Modifier
                 .align(Alignment.CenterStart)
-                .offset(y = (-12).dp)
+                .offset(y = (-22).dp)
         ) {
             Text(
                 text = "Profile Admin",
@@ -207,7 +207,7 @@ fun ProfileHeader(
         Box(
             modifier = Modifier
                 .align(Alignment.TopEnd)
-                .padding(top = 22.dp)
+                .padding(top = 12.dp)
                 .size(44.dp)
                 .clickable(onClick = onLogoutClick)
                 .background(

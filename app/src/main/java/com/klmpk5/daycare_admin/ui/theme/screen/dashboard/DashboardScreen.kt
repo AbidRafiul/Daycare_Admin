@@ -162,7 +162,7 @@ fun DashboardHeader(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(210.dp)
+            .height(176.dp)
             .background(
                 Brush.verticalGradient(
                     colors = listOf(
@@ -177,7 +177,7 @@ fun DashboardHeader(
         Column(
             modifier = Modifier
                 .align(Alignment.CenterStart)
-                .offset(y = (-12).dp)
+                .offset(y = (-22).dp)
         ) {
             Text(
                 text = "Dashboard",

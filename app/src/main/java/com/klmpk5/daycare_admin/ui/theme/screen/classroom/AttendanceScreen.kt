@@ -393,7 +393,7 @@ fun AttendanceHeader() {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(185.dp)
+            .height(164.dp)
             .background(
                 Brush.verticalGradient(
                     colors = listOf(
@@ -419,7 +419,7 @@ fun AttendanceHeader() {
         Column(
             modifier = Modifier
                 .align(Alignment.CenterStart)
-                .offset(y = (-12).dp)
+                .offset(y = (-22).dp)
         ) {
             Text(
                 text = "Presensi Anak",
@@ -440,7 +440,7 @@ fun AttendanceHeader() {
         Box(
             modifier = Modifier
                 .align(Alignment.TopEnd)
-                .padding(top = 22.dp)
+                .padding(top = 12.dp)
                 .size(44.dp)
                 .background(
                     color = Color.White.copy(alpha = 0.16f),

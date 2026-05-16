@@ -203,7 +203,7 @@ fun HistoryRaportHeader(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(190.dp)
+            .height(164.dp)
             .background(
                 Brush.verticalGradient(
                     colors = listOf(
@@ -218,7 +218,7 @@ fun HistoryRaportHeader(
         Surface(
             modifier = Modifier
                 .align(Alignment.TopStart)
-                .padding(top = 16.dp)
+                .padding(top = 8.dp)
                 .size(42.dp),
             onClick = onBack,
             color = Color.White.copy(alpha = 0.16f),
@@ -250,7 +250,7 @@ fun HistoryRaportHeader(
         Column(
             modifier = Modifier
                 .align(Alignment.CenterStart)
-                .offset(y = (-12).dp)
+                .offset(y = (-22).dp)
         ) {
             Text(
                 text = "History Raport",
@@ -272,7 +272,7 @@ fun HistoryRaportHeader(
         Box(
             modifier = Modifier
                 .align(Alignment.TopEnd)
-                .padding(top = 22.dp)
+                .padding(top = 12.dp)
                 .size(44.dp)
                 .background(
                     color = Color.White.copy(alpha = 0.16f),
