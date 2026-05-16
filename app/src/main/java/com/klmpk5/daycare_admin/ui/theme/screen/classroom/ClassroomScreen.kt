@@ -19,6 +19,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.klmpk5.daycare_admin.data.local.entities.Child
+import com.klmpk5.daycare_admin.data.local.entities.WeeklyPlan
 import com.klmpk5.daycare_admin.ui.theme.DaycareBackground
 import com.klmpk5.daycare_admin.ui.theme.DaycareBorder
 import com.klmpk5.daycare_admin.ui.theme.DaycarePrimary
@@ -26,6 +27,9 @@ import com.klmpk5.daycare_admin.ui.theme.DaycarePrimaryLight
 import com.klmpk5.daycare_admin.ui.theme.DaycareTextMuted
 import com.klmpk5.daycare_admin.ui.theme.DaycareTextPrimary
 import com.klmpk5.daycare_admin.ui.theme.DaycareTextSecondary
+import com.klmpk5.daycare_admin.ui.theme.screen.weeklyplan.EmptyWeeklyPlanCard
+import com.klmpk5.daycare_admin.ui.theme.screen.weeklyplan.WeeklyPlanItemCard
+import com.klmpk5.daycare_admin.ui.theme.screen.weeklyplan.WeeklyPlanListHeader
 import com.klmpk5.daycare_admin.ui.theme.screen.weeklyplan.WeeklyPlanScreen
 import com.klmpk5.daycare_admin.viewmodel.AdminChildViewModel
 import com.klmpk5.daycare_admin.viewmodel.AdminWeeklyPlanViewModel
@@ -52,6 +56,7 @@ fun ClassroomScreen(
     var selectedMenu by remember { mutableStateOf<ClassroomMenu?>(null) }
     var masterDataPage by remember { mutableStateOf(MasterDataPage.LIST) }
     var selectedChildForEdit by remember { mutableStateOf<Child?>(null) }
+    val weeklyPlans by weeklyPlanViewModel.weeklyPlans.collectAsState(initial = emptyList())
 
     Scaffold(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
@@ -133,6 +138,46 @@ fun ClassroomScreen(
                     }
                 }
 
+                selectedMenu == ClassroomMenu.ATTENDANCE -> {
+                    item {
+                        ChildPageHeader(
+                            title = "Presensi",
+                            subtitle = "Kelola kehadiran anak daycare hari ini",
+                            onBack = {
+                                selectedMenu = null
+                            }
+                        )
+                    }
+
+                    item {
+                        AttendanceScreen(
+                            adminChildViewModel = adminChildViewModel,
+                            attendanceViewModel = attendanceViewModel,
+                            showHeader = false
+                        )
+                    }
+                }
+
+                selectedMenu == ClassroomMenu.WEEKLY_PLAN -> {
+                    item {
+                        ChildPageHeader(
+                            title = "Weekly Plan",
+                            subtitle = "Tambah rencana kegiatan mingguan",
+                            onBack = {
+                                selectedMenu = null
+                            }
+                        )
+                    }
+
+                    item {
+                        WeeklyPlanScreen(
+                            weeklyPlanViewModel = weeklyPlanViewModel,
+                            showHeader = false,
+                            showList = false
+                        )
+                    }
+                }
+
                 else -> {
                     item {
                         ClassroomHeader()
@@ -155,23 +200,13 @@ fun ClassroomScreen(
                     }
 
                     item {
-                        when (selectedMenu) {
-                        ClassroomMenu.ATTENDANCE -> {
-                            AttendanceScreen(
-                                adminChildViewModel = adminChildViewModel,
-                                attendanceViewModel = attendanceViewModel
-                            )
-
-                        }
-
-                        ClassroomMenu.WEEKLY_PLAN -> {
-                            WeeklyPlanScreen(
-                                weeklyPlanViewModel = weeklyPlanViewModel
-                            )
-                        }
-
-                            else -> Unit
-                        }
+                        ClassroomWeeklyPlanSection(
+                            total = weeklyPlans.size,
+                            weeklyPlans = weeklyPlans,
+                            modifier = Modifier
+                                .padding(horizontal = 20.dp)
+                                .offset(y = (-18).dp)
+                        )
                     }
                 }
             }
@@ -290,12 +325,13 @@ fun ChildPageHeader(
         Column(
             modifier = Modifier
                 .align(Alignment.CenterStart)
-                .offset(y = (-22).dp)
+                .padding(start = 58.dp, end = 4.dp)
+                .offset(y = (-18).dp)
         ) {
             Text(
                 text = title,
                 color = Color.White,
-                fontSize = 30.sp,
+                fontSize = 27.sp,
                 fontWeight = FontWeight.Bold
             )
 
@@ -390,6 +426,31 @@ fun ClassroomMenuGrid(
                     onClick = { onMenuClick(ClassroomMenu.WEEKLY_PLAN) }
                 )
             }
+        }
+    }
+}
+
+@Composable
+fun ClassroomWeeklyPlanSection(
+    total: Int,
+    weeklyPlans: List<WeeklyPlan>,
+    modifier: Modifier = Modifier
+) {
+    Column(modifier = modifier.fillMaxWidth()) {
+        WeeklyPlanListHeader(total = total)
+
+        if (weeklyPlans.isEmpty()) {
+            EmptyWeeklyPlanCard()
+        } else {
+            weeklyPlans
+                .sortedByDescending { it.startDate }
+                .take(3)
+                .forEach { plan ->
+                    WeeklyPlanItemCard(
+                        plan = plan,
+                        modifier = Modifier.padding(bottom = 12.dp)
+                    )
+                }
         }
     }
 }

@@ -31,7 +31,9 @@ import java.util.UUID
 
 @Composable
 fun WeeklyPlanScreen(
-    weeklyPlanViewModel: AdminWeeklyPlanViewModel
+    weeklyPlanViewModel: AdminWeeklyPlanViewModel,
+    showHeader: Boolean = true,
+    showList: Boolean = true
 ) {
     val weeklyPlans by weeklyPlanViewModel.weeklyPlans.collectAsState(initial = emptyList())
     val saveState by weeklyPlanViewModel.saveState.collectAsState()
@@ -67,7 +69,9 @@ fun WeeklyPlanScreen(
             .background(DaycareBackground)
             .padding(bottom = 24.dp)
     ) {
-        WeeklyPlanHeader()
+        if (showHeader) {
+            WeeklyPlanHeader()
+        }
 
         WeeklyPlanFormCard(
             startDate = startDate,
@@ -105,33 +109,35 @@ fun WeeklyPlanScreen(
             },
             modifier = Modifier
                 .padding(horizontal = 20.dp)
-                .offset(y = (-36).dp)
+                .offset(y = if (showHeader) (-36).dp else (-34).dp)
         )
 
-        Spacer(modifier = Modifier.height(4.dp))
+        if (showList) {
+            Spacer(modifier = Modifier.height(4.dp))
 
-        WeeklyPlanListHeader(
-            total = weeklyPlans.size,
-            modifier = Modifier
-                .padding(horizontal = 20.dp)
-                .offset(y = (-36).dp)
-        )
-
-        if (weeklyPlans.isEmpty()) {
-            EmptyWeeklyPlanCard(
+            WeeklyPlanListHeader(
+                total = weeklyPlans.size,
                 modifier = Modifier
                     .padding(horizontal = 20.dp)
                     .offset(y = (-36).dp)
             )
-        } else {
-            weeklyPlans.forEach { plan ->
-                WeeklyPlanItemCard(
-                    plan = plan,
+
+            if (weeklyPlans.isEmpty()) {
+                EmptyWeeklyPlanCard(
                     modifier = Modifier
                         .padding(horizontal = 20.dp)
-                        .padding(bottom = 12.dp)
                         .offset(y = (-36).dp)
                 )
+            } else {
+                weeklyPlans.forEach { plan ->
+                    WeeklyPlanItemCard(
+                        plan = plan,
+                        modifier = Modifier
+                            .padding(horizontal = 20.dp)
+                            .padding(bottom = 12.dp)
+                            .offset(y = (-36).dp)
+                    )
+                }
             }
         }
     }
