@@ -417,7 +417,9 @@ fun AttendanceHeader() {
         )
 
         Column(
-            modifier = Modifier.align(Alignment.CenterStart)
+            modifier = Modifier
+                .align(Alignment.CenterStart)
+                .offset(y = (-12).dp)
         ) {
             Text(
                 text = "Presensi Anak",

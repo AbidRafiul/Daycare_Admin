@@ -81,6 +81,7 @@ fun HistoryRaportScreen(
     }
 
     Scaffold(
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         containerColor = DaycareBackground
     ) { innerPadding ->
 
@@ -247,7 +248,9 @@ fun HistoryRaportHeader(
         )
 
         Column(
-            modifier = Modifier.align(Alignment.CenterStart)
+            modifier = Modifier
+                .align(Alignment.CenterStart)
+                .offset(y = (-12).dp)
         ) {
             Text(
                 text = "History Raport",

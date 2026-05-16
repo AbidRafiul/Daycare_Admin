@@ -166,7 +166,9 @@ fun WeeklyPlanHeader() {
         )
 
         Column(
-            modifier = Modifier.align(Alignment.CenterStart)
+            modifier = Modifier
+                .align(Alignment.CenterStart)
+                .offset(y = (-12).dp)
         ) {
             Text(
                 text = "Weekly Plan",

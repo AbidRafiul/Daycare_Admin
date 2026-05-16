@@ -54,6 +54,7 @@ fun ClassroomScreen(
     var selectedChildForEdit by remember { mutableStateOf<Child?>(null) }
 
     Scaffold(
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         containerColor = DaycareBackground
     ) { innerPadding ->
 
@@ -64,30 +65,63 @@ fun ClassroomScreen(
                 .padding(innerPadding),
             contentPadding = PaddingValues(bottom = 24.dp)
         ) {
-            item {
-                ClassroomHeader()
-            }
-
-            item {
-                ClassroomMenuGrid(
-                    selectedMenu = selectedMenu,
-                    onMenuClick = { menu ->
-                        selectedMenu = menu
-                        if (menu == ClassroomMenu.MASTER_DATA) {
+            if (selectedMenu == ClassroomMenu.MASTER_DATA && masterDataPage == MasterDataPage.FORM) {
+                item {
+                    ChildFormPageHeader(
+                        title = if (selectedChildForEdit == null) "Tambah Anak" else "Edit Anak",
+                        subtitle = if (selectedChildForEdit == null) {
+                            "Isi data anak baru"
+                        } else {
+                            "Perbarui data anak"
+                        },
+                        onBack = {
                             selectedChildForEdit = null
                             masterDataPage = MasterDataPage.LIST
                         }
-                    },
-                    modifier = Modifier
-                        .padding(horizontal = 20.dp)
-                        .offset(y = (-34).dp)
-                )
-            }
+                    )
+                }
 
-            item {
-                when (selectedMenu) {
-                    ClassroomMenu.MASTER_DATA -> {
-                        if (masterDataPage == MasterDataPage.LIST) {
+                item {
+                    MasterDataChildForm(
+                        adminChildViewModel = adminChildViewModel,
+                        selectedChild = selectedChildForEdit,
+                        onBackToList = {
+                            selectedChildForEdit = null
+                            masterDataPage = MasterDataPage.LIST
+                        },
+                        onSaveComplete = {
+                            selectedChildForEdit = null
+                            masterDataPage = MasterDataPage.LIST
+                        },
+                        modifier = Modifier
+                            .padding(horizontal = 20.dp)
+                            .offset(y = (-34).dp)
+                    )
+                }
+            } else {
+                item {
+                    ClassroomHeader()
+                }
+
+                item {
+                    ClassroomMenuGrid(
+                        selectedMenu = selectedMenu,
+                        onMenuClick = { menu ->
+                            selectedMenu = menu
+                            if (menu == ClassroomMenu.MASTER_DATA) {
+                                selectedChildForEdit = null
+                                masterDataPage = MasterDataPage.LIST
+                            }
+                        },
+                        modifier = Modifier
+                            .padding(horizontal = 20.dp)
+                            .offset(y = (-34).dp)
+                    )
+                }
+
+                item {
+                    when (selectedMenu) {
+                        ClassroomMenu.MASTER_DATA -> {
                             ChildListSection(
                                 adminChildViewModel = adminChildViewModel,
                                 onAddClick = {
@@ -102,37 +136,21 @@ fun ClassroomScreen(
                                     .padding(horizontal = 20.dp)
                                     .offset(y = (-34).dp)
                             )
-                        } else {
-                            MasterDataChildForm(
+                        }
+
+                        ClassroomMenu.ATTENDANCE -> {
+                            AttendanceScreen(
                                 adminChildViewModel = adminChildViewModel,
-                                selectedChild = selectedChildForEdit,
-                                onBackToList = {
-                                    selectedChildForEdit = null
-                                    masterDataPage = MasterDataPage.LIST
-                                },
-                                onSaveComplete = {
-                                    selectedChildForEdit = null
-                                    masterDataPage = MasterDataPage.LIST
-                                },
-                                modifier = Modifier
-                                    .padding(horizontal = 20.dp)
-                                    .offset(y = (-34).dp)
+                                attendanceViewModel = attendanceViewModel
+                            )
+
+                        }
+
+                        ClassroomMenu.WEEKLY_PLAN -> {
+                            WeeklyPlanScreen(
+                                weeklyPlanViewModel = weeklyPlanViewModel
                             )
                         }
-                    }
-
-                    ClassroomMenu.ATTENDANCE -> {
-                        AttendanceScreen(
-                            adminChildViewModel = adminChildViewModel,
-                            attendanceViewModel = attendanceViewModel
-                        )
-
-                    }
-
-                    ClassroomMenu.WEEKLY_PLAN -> {
-                        WeeklyPlanScreen(
-                            weeklyPlanViewModel = weeklyPlanViewModel
-                        )
                     }
                 }
             }
@@ -186,6 +204,7 @@ fun ClassroomHeader() {
         Column(
             modifier = Modifier
                 .align(Alignment.CenterStart)
+                .offset(y = (-12).dp)
         ) {
             Text(
                 text = "Classroom",
@@ -204,6 +223,70 @@ fun ClassroomHeader() {
             )
         }
 
+    }
+}
+
+@Composable
+fun ChildFormPageHeader(
+    title: String,
+    subtitle: String,
+    onBack: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(190.dp)
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(
+                        DaycarePrimary,
+                        Color(0xFF23897D)
+                    )
+                )
+            )
+            .padding(horizontal = 22.dp)
+            .statusBarsPadding()
+    ) {
+        Surface(
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .padding(top = 16.dp)
+                .size(42.dp),
+            onClick = onBack,
+            color = Color.White.copy(alpha = 0.16f),
+            shape = CircleShape
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Text(
+                    text = "<",
+                    color = Color.White,
+                    fontSize = 28.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
+
+        Column(
+            modifier = Modifier
+                .align(Alignment.CenterStart)
+                .offset(y = (-12).dp)
+        ) {
+            Text(
+                text = title,
+                color = Color.White,
+                fontSize = 30.sp,
+                fontWeight = FontWeight.Bold
+            )
+
+            Spacer(modifier = Modifier.height(6.dp))
+
+            Text(
+                text = subtitle,
+                color = Color.White.copy(alpha = 0.90f),
+                fontSize = 14.sp,
+                lineHeight = 20.sp
+            )
+        }
     }
 }
 
@@ -710,19 +793,6 @@ fun MasterDataChildForm(
                     fontWeight = FontWeight.SemiBold
                 )
             }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            TextButton(
-                onClick = onCancel,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(
-                    text = "Kembali ke Daftar Anak",
-                    color = DaycarePrimary,
-                    fontWeight = FontWeight.SemiBold
-                )
-            }
         }
     }
 }
@@ -1142,8 +1212,7 @@ fun ClassroomComingSoonCard(
 enum class ClassroomMenu {
     MASTER_DATA,
     ATTENDANCE,
-    WEEKLY_PLAN,
-    ACTIVITY_UPLOAD
+    WEEKLY_PLAN
 }
 
 private enum class MasterDataPage {

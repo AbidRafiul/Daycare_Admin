@@ -41,6 +41,7 @@ fun RaportScreen(
     val children by adminChildViewModel.children.collectAsState(initial = emptyList())
 
     Scaffold(
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         containerColor = DaycareBackground
     ) { innerPadding ->
 
@@ -142,7 +143,9 @@ fun RaportHeader() {
         )
 
         Column(
-            modifier = Modifier.align(Alignment.CenterStart)
+            modifier = Modifier
+                .align(Alignment.CenterStart)
+                .offset(y = (-12).dp)
         ) {
             Text(
                 text = "Raport Anak",

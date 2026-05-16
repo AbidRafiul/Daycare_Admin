@@ -57,6 +57,7 @@ fun ChangePasswordScreen(
     }
 
     Scaffold(
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         containerColor = DaycareBackground
     ) { innerPadding ->
 

@@ -62,7 +62,7 @@ fun DashboardHeader() {
             modifier = Modifier
                 .fillMaxWidth()
                 .align(Alignment.TopCenter)
-                .padding(top = 24.dp),
+                .padding(top = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(

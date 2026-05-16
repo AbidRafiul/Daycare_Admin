@@ -106,6 +106,7 @@ fun ProfileScreen(
     }
 
     Scaffold(
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         containerColor = DaycareBackground
     ) { innerPadding ->
 
@@ -182,7 +183,9 @@ fun ProfileHeader(
         )
 
         Column(
-            modifier = Modifier.align(Alignment.CenterStart)
+            modifier = Modifier
+                .align(Alignment.CenterStart)
+                .offset(y = (-12).dp)
         ) {
             Text(
                 text = "Profile Admin",
