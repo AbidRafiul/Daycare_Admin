@@ -20,6 +20,10 @@ class ScoreRepository(
         return scoreDao.getScoresByChildId(childId)
     }
 
+    fun getScoresByDateLocal(date: String): Flow<List<DailyScore>> {
+        return scoreDao.getScoresByDate(date)
+    }
+
     // 2. Sinkronisasi nilai harian dari Firebase ke Room
     suspend fun syncScoresFromRemote(childId: String) {
         withContext(Dispatchers.IO) {

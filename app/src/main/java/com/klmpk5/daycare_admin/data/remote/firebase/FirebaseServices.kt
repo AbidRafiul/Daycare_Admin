@@ -1,6 +1,7 @@
 package com.klmpk5.daycare_admin.data.remote.firebase
 
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.SetOptions
 import com.klmpk5.daycare_admin.data.remote.model.AttendanceRemoteDto
 import com.klmpk5.daycare_admin.data.remote.model.ChildRemoteDto
 import com.klmpk5.daycare_admin.data.remote.model.DailyScoreRemoteDto
@@ -11,6 +12,9 @@ import kotlinx.coroutines.tasks.await
 class FirebaseService {
     private val db = FirebaseFirestore.getInstance()
 
+    // ==========================================
+    // 0. PRESENSI (ADMIN ACCESS)
+    // ==========================================
     suspend fun addOrUpdateAttendance(attendance: AttendanceRemoteDto) {
         db.collection("attendance")
             .document(attendance.attendanceId)
@@ -154,10 +158,6 @@ class FirebaseService {
     }
 
     // ==========================================
-    // 4. USER OPERATIONS (AUTH & ROLE)
-    // ==========================================
-
-    // ==========================================
 // 4. USER OPERATIONS (AUTH & ROLE)
 // ==========================================
 
@@ -176,25 +176,70 @@ class FirebaseService {
         }
     }
 
+    suspend fun getUserProfile(uid: String): UserRemoteDto? {
+        return try {
+            val doc = db.collection("users")
+                .document(uid)
+                .get()
+                .await()
+
+            val user = doc.toObject(UserRemoteDto::class.java)
+            user?.uid = doc.id
+            user
+        } catch (e: Exception) {
+            null
+        }
+    }
+
     suspend fun saveUserProfile(
         uid: String,
         email: String,
-        role: String
+        role: String,
+        fullName: String = "",
+        description: String = "",
+        updatedAt: Long = System.currentTimeMillis()
     ) {
         try {
             val userDto = UserRemoteDto(
                 uid = uid,
                 email = email,
-                role = role
+                role = role,
+                fullName = fullName,
+                description = description,
+                updatedAt = updatedAt
             )
 
             db.collection("users")
                 .document(uid)
-                .set(userDto)
+                .set(userDto, SetOptions.merge())
                 .await()
 
         } catch (e: Exception) {
             e.printStackTrace()
         }
+    }
+
+    suspend fun updateUserProfile(
+        uid: String,
+        fullName: String,
+        email: String,
+        description: String,
+        role: String = "admin",
+        updatedAt: Long = System.currentTimeMillis()
+    ) {
+        db.collection("users")
+            .document(uid)
+            .set(
+                mapOf(
+                    "uid" to uid,
+                    "fullName" to fullName,
+                    "email" to email,
+                    "role" to role,
+                    "description" to description,
+                    "updatedAt" to updatedAt
+                ),
+                SetOptions.merge()
+            )
+            .await()
     }
 }
