@@ -1,5 +1,8 @@
 package com.klmpk5.daycare_admin.ui.theme.screen.classroom
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -12,13 +15,18 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.FileProvider
+import coil.compose.AsyncImage
 import com.klmpk5.daycare_admin.data.local.entities.Child
 import com.klmpk5.daycare_admin.data.local.entities.WeeklyPlan
 import com.klmpk5.daycare_admin.ui.theme.DaycareBackground
@@ -35,6 +43,7 @@ import com.klmpk5.daycare_admin.ui.theme.screen.weeklyplan.WeeklyPlanScreen
 import com.klmpk5.daycare_admin.viewmodel.AdminChildViewModel
 import com.klmpk5.daycare_admin.viewmodel.AdminWeeklyPlanViewModel
 import com.klmpk5.daycare_admin.viewmodel.AttendanceViewModel
+import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -536,6 +545,7 @@ fun MasterDataChildForm(
     onBackToList: () -> Unit,
     onSaveComplete: () -> Unit
 ) {
+    val context = LocalContext.current
     var fullName by remember { mutableStateOf("") }
     var nickName by remember { mutableStateOf("") }
     var birthDate by remember { mutableStateOf("") }
@@ -543,6 +553,8 @@ fun MasterDataChildForm(
     var parentUserId by remember { mutableStateOf("") }
     var parentEmail by remember { mutableStateOf("") }
     var photoUrl by remember { mutableStateOf("") }
+    var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
+    var pendingCameraUri by remember { mutableStateOf<Uri?>(null) }
     var isActive by remember { mutableStateOf(true) }
 
     var message by remember { mutableStateOf<String?>(null) }
@@ -556,6 +568,8 @@ fun MasterDataChildForm(
             parentUserId = selectedChild.parentUserId ?: ""
             parentEmail = selectedChild.parentEmail ?: ""
             photoUrl = selectedChild.photoUrl ?: ""
+            selectedImageUri = null
+            pendingCameraUri = null
             isActive = selectedChild.isActive
             message = "Mode edit data anak"
         } else {
@@ -566,8 +580,22 @@ fun MasterDataChildForm(
             parentUserId = ""
             parentEmail = ""
             photoUrl = ""
+            selectedImageUri = null
+            pendingCameraUri = null
             isActive = true
             message = null
+        }
+    }
+
+    val cameraLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicture()
+    ) { success ->
+        if (success) {
+            selectedImageUri = pendingCameraUri
+            photoUrl = ""
+            message = "Foto anak siap diupload"
+        } else {
+            message = "Pengambilan foto dibatalkan"
         }
     }
 
@@ -703,11 +731,20 @@ fun MasterDataChildForm(
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            ClassroomTextField(
-                value = photoUrl,
-                onValueChange = { photoUrl = it },
-                label = "Photo URL",
-                placeholder = "Optional, URL foto anak"
+            ChildPhotoCameraField(
+                selectedImageUri = selectedImageUri,
+                currentPhotoUrl = photoUrl.ifBlank { null },
+                gender = gender,
+                onTakePhoto = {
+                    val imageUri = createChildCameraImageUri(context)
+                    pendingCameraUri = imageUri
+                    cameraLauncher.launch(imageUri)
+                },
+                onRemovePhoto = {
+                    selectedImageUri = null
+                    photoUrl = ""
+                    message = "Foto anak dihapus dari form"
+                }
             )
 
             Spacer(modifier = Modifier.height(18.dp))
@@ -766,6 +803,10 @@ fun MasterDataChildForm(
                     color = if (
                         message == "Data anak berhasil disimpan" ||
                         message == "Data anak berhasil diperbarui" ||
+                        message == "Data anak dan foto sedang disimpan" ||
+                        message == "Data anak dan foto sedang diperbarui" ||
+                        message == "Foto anak siap diupload" ||
+                        message == "Foto anak dihapus dari form" ||
                         message == "Mode edit data anak"
                     ) {
                         DaycarePrimary
@@ -808,27 +849,22 @@ fun MasterDataChildForm(
                         updatedAt = now
                     )
 
-                    /**
-                     * imageUri masih null karena form ini belum memakai image picker.
-                     * Kalau nanti sudah ada upload foto dari galeri,
-                     * parameter null ini diganti menjadi selectedImageUri.
-                     */
                     if (selectedChild == null) {
                         adminChildViewModel.addChild(
                             child = child,
-                            imageUri = null
+                            imageUri = selectedImageUri
                         )
                     } else {
                         adminChildViewModel.updateChild(
                             child = child,
-                            imageUri = null
+                            imageUri = selectedImageUri
                         )
                     }
 
                     message = if (selectedChild == null) {
-                        "Data anak berhasil disimpan"
+                        if (selectedImageUri == null) "Data anak berhasil disimpan" else "Data anak dan foto sedang disimpan"
                     } else {
-                        "Data anak berhasil diperbarui"
+                        if (selectedImageUri == null) "Data anak berhasil diperbarui" else "Data anak dan foto sedang diperbarui"
                     }
 
                     fullName = ""
@@ -838,6 +874,8 @@ fun MasterDataChildForm(
                     parentUserId = ""
                     parentEmail = ""
                     photoUrl = ""
+                    selectedImageUri = null
+                    pendingCameraUri = null
                     isActive = true
                     onSaveComplete()
                 },
@@ -881,6 +919,117 @@ fun MasterDataChildForm(
         }
     }
 }
+
+@Composable
+fun ChildPhotoCameraField(
+    selectedImageUri: Uri?,
+    currentPhotoUrl: String?,
+    gender: String,
+    onTakePhoto: () -> Unit,
+    onRemovePhoto: () -> Unit
+) {
+    val photoModel: Any? = selectedImageUri ?: currentPhotoUrl
+
+    Surface(
+        color = DaycarePrimaryLight.copy(alpha = 0.55f),
+        shape = RoundedCornerShape(18.dp),
+        border = BorderStroke(
+            width = 1.dp,
+            color = DaycarePrimary.copy(alpha = 0.12f)
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp)
+        ) {
+            Text(
+                text = "Foto Anak",
+                fontSize = 15.sp,
+                fontWeight = FontWeight.Bold,
+                color = DaycareTextPrimary
+            )
+
+            Spacer(modifier = Modifier.height(6.dp))
+
+            Text(
+                text = when {
+                    selectedImageUri != null -> "Foto baru akan diupload ke Cloudinary saat disimpan"
+                    !currentPhotoUrl.isNullOrBlank() -> "Foto anak saat ini tersimpan di Cloudinary"
+                    else -> "Ambil foto langsung dari kamera"
+                },
+                fontSize = 12.sp,
+                color = DaycareTextSecondary
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            if (photoModel != null) {
+                AsyncImage(
+                    model = photoModel,
+                    contentDescription = "Foto anak",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(180.dp)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(Color.White),
+                    contentScale = ContentScale.Crop
+                )
+            } else {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(150.dp)
+                        .background(
+                            color = Color.White.copy(alpha = 0.82f),
+                            shape = RoundedCornerShape(16.dp)
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = if (gender == "Perempuan") "Foto anak perempuan" else "Foto anak laki-laki",
+                        fontSize = 13.sp,
+                        color = DaycareTextMuted
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            OutlinedButton(
+                onClick = onTakePhoto,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp),
+                shape = RoundedCornerShape(16.dp),
+                border = BorderStroke(
+                    width = 1.dp,
+                    color = DaycarePrimary
+                )
+            ) {
+                Text(
+                    text = if (photoModel == null) "Ambil Foto" else "Ambil Ulang Foto",
+                    color = DaycarePrimary,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+
+            if (photoModel != null) {
+                Spacer(modifier = Modifier.height(8.dp))
+
+                TextButton(
+                    onClick = onRemovePhoto,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = "Hapus Foto",
+                        color = Color(0xFFB91C1C),
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            }
+        }
+    }
+}
+
 /**
  * Daftar Anak di Master Data Menu Classroom.
  */
@@ -1265,6 +1414,23 @@ private fun parseDateMillis(value: String): Long? {
 
 private fun formatDateMillis(millis: Long): String {
     return SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date(millis))
+}
+
+fun createChildCameraImageUri(context: android.content.Context): Uri {
+    val imageDir = File(context.cacheDir, "images")
+    imageDir.mkdirs()
+
+    val imageFile = File.createTempFile(
+        "child_${System.currentTimeMillis()}_",
+        ".jpg",
+        imageDir
+    )
+
+    return FileProvider.getUriForFile(
+        context,
+        "${context.packageName}.fileprovider",
+        imageFile
+    )
 }
 
 /**
