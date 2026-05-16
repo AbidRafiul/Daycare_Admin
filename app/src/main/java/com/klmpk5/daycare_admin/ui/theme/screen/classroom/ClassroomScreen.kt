@@ -39,7 +39,6 @@ import java.util.UUID
  * - Master Data Anak
  * - Presensi
  * - Weekly Plan
- * - Upload Gambar Aktivitas
  *
  * Untuk sekarang UI masih static.
  * Nanti bisa dihubungkan ke ViewModel, Room, dan Firebase.
@@ -135,18 +134,6 @@ fun ClassroomScreen(
                             weeklyPlanViewModel = weeklyPlanViewModel
                         )
                     }
-
-                    ClassroomMenu.ACTIVITY_UPLOAD -> {
-                        ClassroomComingSoonCard(
-                            title = "Upload Aktivitas",
-                            description = "Upload foto kegiatan anak untuk dokumentasi harian.",
-                            emoji = "📷",
-                            buttonText = "Upload Foto",
-                            modifier = Modifier
-                                .padding(horizontal = 20.dp)
-                                .offset(y = (-34).dp)
-                        )
-                    }
                 }
             }
         }
@@ -217,34 +204,6 @@ fun ClassroomHeader() {
             )
         }
 
-        // Icon notifikasi
-        Box(
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .padding(top = 22.dp)
-                .size(44.dp)
-                .background(
-                    color = Color.White.copy(alpha = 0.16f),
-                    shape = CircleShape
-                ),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = "🔔",
-                fontSize = 22.sp
-            )
-
-            Box(
-                modifier = Modifier
-                    .size(9.dp)
-                    .align(Alignment.TopEnd)
-                    .offset(x = (-8).dp, y = 7.dp)
-                    .background(
-                        color = Color(0xFFFF5A5F),
-                        shape = CircleShape
-                    )
-            )
-        }
     }
 }
 
@@ -325,15 +284,6 @@ fun ClassroomMenuGrid(
                     description = "Jadwal",
                     selected = selectedMenu == ClassroomMenu.WEEKLY_PLAN,
                     onClick = { onMenuClick(ClassroomMenu.WEEKLY_PLAN) }
-                )
-
-                ClassroomMenuItem(
-                    modifier = Modifier.weight(1f),
-                    emoji = "📷",
-                    title = "Upload",
-                    description = "Aktivitas",
-                    selected = selectedMenu == ClassroomMenu.ACTIVITY_UPLOAD,
-                    onClick = { onMenuClick(ClassroomMenu.ACTIVITY_UPLOAD) }
                 )
             }
         }
@@ -645,7 +595,11 @@ fun MasterDataChildForm(
 
                 Text(
                     text = message ?: "",
-                    color = if (message == "Data anak berhasil disimpan") {
+                    color = if (
+                        message == "Data anak berhasil disimpan" ||
+                        message == "Data anak berhasil diperbarui" ||
+                        message == "Mode edit data anak"
+                    ) {
                         DaycarePrimary
                     } else {
                         Color(0xFFB91C1C)
@@ -703,7 +657,11 @@ fun MasterDataChildForm(
                         )
                     }
 
-                    message = "Data anak berhasil disimpan"
+                    message = if (selectedChild == null) {
+                        "Data anak berhasil disimpan"
+                    } else {
+                        "Data anak berhasil diperbarui"
+                    }
 
                     fullName = ""
                     nickName = ""
@@ -745,6 +703,19 @@ fun MasterDataChildForm(
                     width = 1.dp,
                     color = DaycarePrimary
                 )
+            ) {
+                Text(
+                    text = "Kembali ke Daftar Anak",
+                    color = DaycarePrimary,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            TextButton(
+                onClick = onCancel,
+                modifier = Modifier.fillMaxWidth()
             ) {
                 Text(
                     text = "Kembali ke Daftar Anak",

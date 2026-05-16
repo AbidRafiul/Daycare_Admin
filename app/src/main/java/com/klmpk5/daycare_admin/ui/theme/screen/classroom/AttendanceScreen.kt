@@ -3,8 +3,6 @@ package com.klmpk5.daycare_admin.ui.theme.screen.classroom
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -45,7 +43,10 @@ fun AttendanceScreen(
     attendanceViewModel: AttendanceViewModel
 ) {
     val children by adminChildViewModel.children.collectAsState(initial = emptyList())
+    val attendanceList by attendanceViewModel.attendanceList.collectAsState(initial = emptyList())
     val saveState by attendanceViewModel.saveState.collectAsState()
+
+    var attendancePage by remember { mutableStateOf(AttendancePage.LIST) }
 
     val todayDate = remember {
         SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
@@ -76,67 +77,69 @@ fun AttendanceScreen(
         attendanceViewModel.setDate(todayDate)
     }
 
-    Scaffold(
-        containerColor = DaycareBackground
-    ) { innerPadding ->
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(DaycareBackground)
+            .padding(bottom = 24.dp)
+    ) {
+        AttendanceHeader()
 
-        LazyColumn(
+        AttendanceSummaryCard(
+            totalChildren = children.count { it.isActive },
+            selectedCount = if (attendancePage == AttendancePage.LIST) {
+                attendanceList.size
+            } else {
+                selectedStatuses.size
+            },
+            readableDate = readableDate,
             modifier = Modifier
-                .fillMaxSize()
-                .background(DaycareBackground)
-                .padding(innerPadding),
-            contentPadding = PaddingValues(bottom = 24.dp)
-        ) {
-            item {
-                AttendanceHeader()
-            }
+                .padding(horizontal = 20.dp)
+                .offset(y = (-36).dp)
+        )
 
-            item {
-                AttendanceSummaryCard(
-                    totalChildren = children.size,
-                    selectedCount = selectedStatuses.size,
-                    readableDate = readableDate,
+        Spacer(modifier = Modifier.height(4.dp))
+
+        when (attendancePage) {
+            AttendancePage.LIST -> {
+                AttendanceListSection(
+                    attendanceList = attendanceList,
+                    activeChildrenCount = children.count { it.isActive },
+                    onStartAttendanceClick = {
+                        attendancePage = AttendancePage.FORM
+                    },
                     modifier = Modifier
                         .padding(horizontal = 20.dp)
                         .offset(y = (-36).dp)
                 )
             }
 
-            item {
-                Spacer(modifier = Modifier.height(4.dp))
-            }
-
-            if (children.isEmpty()) {
-                item {
+            AttendancePage.FORM -> {
+                if (children.none { it.isActive }) {
                     EmptyAttendanceCard(
                         modifier = Modifier
                             .padding(horizontal = 20.dp)
                             .offset(y = (-36).dp)
                     )
-                }
-            } else {
-                items(
-                    items = children.filter { it.isActive },
-                    key = { it.childId }
-                ) { child ->
-                    AttendanceChildItem(
-                        child = child,
-                        selectedStatus = selectedStatuses[child.childId],
-                        note = noteMap[child.childId].orEmpty(),
-                        onStatusSelected = { status ->
-                            selectedStatuses = selectedStatuses + (child.childId to status)
-                        },
-                        onNoteChange = { note ->
-                            noteMap = noteMap + (child.childId to note)
-                        },
-                        modifier = Modifier
-                            .padding(horizontal = 20.dp)
-                            .padding(bottom = 14.dp)
-                            .offset(y = (-36).dp)
-                    )
-                }
+                } else {
+                    children.filter { it.isActive }.forEach { child ->
+                        AttendanceChildItem(
+                            child = child,
+                            selectedStatus = selectedStatuses[child.childId],
+                            note = noteMap[child.childId].orEmpty(),
+                            onStatusSelected = { status ->
+                                selectedStatuses = selectedStatuses + (child.childId to status)
+                            },
+                            onNoteChange = { note ->
+                                noteMap = noteMap + (child.childId to note)
+                            },
+                            modifier = Modifier
+                                .padding(horizontal = 20.dp)
+                                .padding(bottom = 14.dp)
+                                .offset(y = (-36).dp)
+                        )
+                    }
 
-                item {
                     SaveAttendanceButton(
                         enabled = selectedStatuses.isNotEmpty(),
                         isLoading = saveState is AttendanceSaveState.Loading,
@@ -164,23 +167,220 @@ fun AttendanceScreen(
                                         attendanceViewModel.saveAttendance(attendance)
                                     }
                                 }
+
+                            selectedStatuses = emptyMap()
+                            noteMap = emptyMap()
+                            attendancePage = AttendancePage.LIST
                         },
                         modifier = Modifier
                             .padding(horizontal = 20.dp)
                             .offset(y = (-24).dp)
                     )
+
+                    TextButton(
+                        onClick = {
+                            attendancePage = AttendancePage.LIST
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 20.dp)
+                            .offset(y = (-18).dp)
+                    ) {
+                        Text(
+                            text = "Kembali ke Daftar Presensi",
+                            color = DaycarePrimary,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
                 }
             }
+        }
 
-            item {
-                AttendanceSaveMessage(
-                    saveState = saveState,
-                    onReset = {
-                        attendanceViewModel.resetSaveState()
-                    },
-                    modifier = Modifier.padding(horizontal = 20.dp)
+        if (attendancePage == AttendancePage.LIST) {
+            AttendanceSaveMessage(
+                saveState = saveState,
+                onReset = {
+                    attendanceViewModel.resetSaveState()
+                },
+                modifier = Modifier
+                    .padding(horizontal = 20.dp)
+                    .offset(y = (-24).dp)
+            )
+        }
+    }
+}
+
+@Composable
+fun AttendanceListSection(
+    attendanceList: List<Attendance>,
+    activeChildrenCount: Int,
+    onStartAttendanceClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(28.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color.White
+        ),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 6.dp
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(22.dp)
+        ) {
+            Text(
+                text = "Daftar Presensi Anak",
+                fontSize = 21.sp,
+                fontWeight = FontWeight.Bold,
+                color = DaycareTextPrimary
+            )
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            Text(
+                text = "${attendanceList.size} dari $activeChildrenCount anak sudah dipresensi",
+                fontSize = 13.sp,
+                color = DaycareTextSecondary
+            )
+
+            Spacer(modifier = Modifier.height(18.dp))
+
+            Button(
+                onClick = onStartAttendanceClick,
+                enabled = activeChildrenCount > 0,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(54.dp),
+                shape = RoundedCornerShape(18.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = DaycarePrimary,
+                    disabledContainerColor = DaycarePrimary.copy(alpha = 0.45f)
+                )
+            ) {
+                Text(
+                    text = "Presensi Anak",
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold
                 )
             }
+
+            Spacer(modifier = Modifier.height(18.dp))
+
+            if (activeChildrenCount == 0) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(
+                            color = DaycarePrimaryLight.copy(alpha = 0.55f),
+                            shape = RoundedCornerShape(18.dp)
+                        )
+                        .padding(20.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "Tambahkan data anak terlebih dahulu di menu Master Data.",
+                        color = DaycareTextSecondary,
+                        fontSize = 14.sp
+                    )
+                }
+            } else if (attendanceList.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(
+                            color = DaycarePrimaryLight.copy(alpha = 0.55f),
+                            shape = RoundedCornerShape(18.dp)
+                        )
+                        .padding(20.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "Belum ada presensi hari ini",
+                        color = DaycareTextSecondary,
+                        fontSize = 14.sp
+                    )
+                }
+            } else {
+                attendanceList.forEachIndexed { index, attendance ->
+                    AttendanceListItem(attendance = attendance)
+
+                    if (index != attendanceList.lastIndex) {
+                        HorizontalDivider(
+                            modifier = Modifier.padding(vertical = 10.dp),
+                            color = DaycareBorder.copy(alpha = 0.45f)
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun AttendanceListItem(
+    attendance: Attendance
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(52.dp)
+                .background(
+                    color = DaycarePrimaryLight,
+                    shape = CircleShape
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = "OK",
+                fontSize = 14.sp,
+                color = DaycarePrimary,
+                fontWeight = FontWeight.Bold
+            )
+        }
+
+        Spacer(modifier = Modifier.width(14.dp))
+
+        Column(
+            modifier = Modifier.weight(1f)
+        ) {
+            Text(
+                text = attendance.childName,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.Bold,
+                color = DaycareTextPrimary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            Text(
+                text = attendance.date,
+                fontSize = 13.sp,
+                color = DaycareTextSecondary
+            )
+        }
+
+        Surface(
+            color = DaycarePrimaryLight,
+            shape = RoundedCornerShape(50),
+            border = BorderStroke(
+                width = 1.dp,
+                color = DaycarePrimary.copy(alpha = 0.18f)
+            )
+        ) {
+            Text(
+                text = statusLabel(attendance.status),
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
+                color = DaycarePrimary,
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 12.sp
+            )
         }
     }
 }
@@ -725,4 +925,9 @@ fun statusLabel(status: String): String {
         AttendanceStatus.ABSENT.value -> AttendanceStatus.ABSENT.label
         else -> status
     }
+}
+
+enum class AttendancePage {
+    LIST,
+    FORM
 }
