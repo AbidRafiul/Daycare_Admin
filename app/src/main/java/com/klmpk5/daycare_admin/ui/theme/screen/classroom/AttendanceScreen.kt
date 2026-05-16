@@ -40,7 +40,8 @@ import java.util.Locale
 @Composable
 fun AttendanceScreen(
     adminChildViewModel: AdminChildViewModel,
-    attendanceViewModel: AttendanceViewModel
+    attendanceViewModel: AttendanceViewModel,
+    showHeader: Boolean = true
 ) {
     val children by adminChildViewModel.children.collectAsState(initial = emptyList())
     val attendanceList by attendanceViewModel.attendanceList.collectAsState(initial = emptyList())
@@ -83,7 +84,9 @@ fun AttendanceScreen(
             .background(DaycareBackground)
             .padding(bottom = 24.dp)
     ) {
-        AttendanceHeader()
+        if (showHeader) {
+            AttendanceHeader()
+        }
 
         AttendanceSummaryCard(
             totalChildren = children.count { it.isActive },
