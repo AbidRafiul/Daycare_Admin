@@ -43,6 +43,7 @@ import com.klmpk5.daycare_admin.viewmodel.AdminChildViewModel
 import com.klmpk5.daycare_admin.viewmodel.AdminScoreViewModel
 import com.klmpk5.daycare_admin.viewmodel.AdminWeeklyPlanViewModel
 import com.klmpk5.daycare_admin.viewmodel.AttendanceViewModel
+import com.klmpk5.daycare_admin.viewmodel.ScoreSaveState
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -726,6 +727,39 @@ fun AddDailyScoreForm(
     var message by remember { mutableStateOf<String?>(null) }
     var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
     var pendingCameraUri by remember { mutableStateOf<Uri?>(null) }
+    val saveState by scoreViewModel.saveState.collectAsState()
+    val isSaving = saveState is ScoreSaveState.Loading
+
+    LaunchedEffect(saveState) {
+        when (val state = saveState) {
+            ScoreSaveState.Idle -> Unit
+            ScoreSaveState.Loading -> {
+                message = if (selectedImageUri == null) {
+                    "Menyimpan nilai harian..."
+                } else {
+                    "Mengupload foto dan menyimpan nilai harian..."
+                }
+            }
+            is ScoreSaveState.Success -> {
+                message = if (state.score.imageUrl.isNullOrBlank()) {
+                    "Nilai harian berhasil disimpan"
+                } else {
+                    "Nilai harian dan foto berhasil disimpan"
+                }
+
+                selectedWeeklyPlan = null
+                selectedScore = 0
+                notes = ""
+                selectedImageUri = null
+                pendingCameraUri = null
+                scoreViewModel.resetSaveState()
+            }
+            is ScoreSaveState.Error -> {
+                message = state.message
+                scoreViewModel.resetSaveState()
+            }
+        }
+    }
 
     val cameraLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicture()
@@ -893,13 +927,16 @@ fun AddDailyScoreForm(
 
                     OutlinedButton(
                         onClick = {
-                            val imageUri = createRaportCameraImageUri(context)
-                            pendingCameraUri = imageUri
-                            cameraLauncher.launch(imageUri)
+                            if (!isSaving) {
+                                val imageUri = createRaportCameraImageUri(context)
+                                pendingCameraUri = imageUri
+                                cameraLauncher.launch(imageUri)
+                            }
                         },
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(50.dp),
+                        enabled = !isSaving,
                         shape = RoundedCornerShape(16.dp),
                         border = BorderStroke(
                             width = 1.dp,
@@ -949,6 +986,11 @@ fun AddDailyScoreForm(
                     text = message ?: "",
                     color = if (message?.contains("berhasil", ignoreCase = true) == true) {
                         DaycarePrimary
+                    } else if (message?.contains("Menyimpan", ignoreCase = true) == true ||
+                        message?.contains("Mengupload", ignoreCase = true) == true ||
+                        message?.contains("siap", ignoreCase = true) == true
+                    ) {
+                        DaycareTextSecondary
                     } else {
                         Color(0xFFB91C1C)
                     },
@@ -961,55 +1003,46 @@ fun AddDailyScoreForm(
 
             Button(
                 onClick = {
-                    if (date.isBlank()) {
-                        message = "Tanggal tidak boleh kosong"
-                        return@Button
+                    if (!isSaving) {
+                        if (date.isBlank()) {
+                            message = "Tanggal tidak boleh kosong"
+                            return@Button
+                        }
+
+                        if (selectedWeeklyPlan == null) {
+                            message = "Pilih aktivitas dari Weekly Plan terlebih dahulu"
+                            return@Button
+                        }
+
+                        if (selectedScore == 0) {
+                            message = "Pilih score terlebih dahulu"
+                            return@Button
+                        }
+
+                        val dailyScore = DailyScore(
+                            scoreId = UUID.randomUUID().toString(),
+                            childId = child.childId,
+                            date = date.trim(),
+                            activityName = selectedWeeklyPlan?.description.orEmpty(),
+                            score = selectedScore,
+                            notes = notes.ifBlank { null },
+                            imageUrl = null
+                        )
+
+                        scoreViewModel.addScore(dailyScore, selectedImageUri)
                     }
-
-                    if (selectedWeeklyPlan == null) {
-                        message = "Pilih aktivitas dari Weekly Plan terlebih dahulu"
-                        return@Button
-                    }
-
-                    if (selectedScore == 0) {
-                        message = "Pilih score terlebih dahulu"
-                        return@Button
-                    }
-
-                    val dailyScore = DailyScore(
-                        scoreId = UUID.randomUUID().toString(),
-                        childId = child.childId,
-                        date = date.trim(),
-                        activityName = selectedWeeklyPlan?.description.orEmpty(),
-                        score = selectedScore,
-                        notes = notes.ifBlank { null },
-                        imageUrl = null
-                    )
-
-                    scoreViewModel.addScore(dailyScore, selectedImageUri)
-
-                    message = if (selectedImageUri == null) {
-                        "Nilai harian berhasil disimpan"
-                    } else {
-                        "Nilai harian dan foto berhasil disimpan"
-                    }
-
-                    selectedWeeklyPlan = null
-                    selectedScore = 0
-                    notes = ""
-                    selectedImageUri = null
-                    pendingCameraUri = null
                 },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp),
+                enabled = !isSaving,
                 shape = RoundedCornerShape(18.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = DaycarePrimary
                 )
             ) {
                 Text(
-                    text = "Simpan Nilai",
+                    text = if (isSaving) "Menyimpan..." else "Simpan Nilai",
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color.White
