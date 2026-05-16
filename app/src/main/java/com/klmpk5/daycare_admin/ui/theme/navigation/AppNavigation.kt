@@ -65,7 +65,13 @@ fun AppNavigation(
             }
 
             composable("dashboard") {
-                DashboardScreen(navController = navController)
+                DashboardScreen(
+                    navController = navController,
+                    adminChildViewModel = adminChildViewModel,
+                    attendanceViewModel = attendanceViewModel,
+                    weeklyPlanViewModel = weeklyPlanViewModel,
+                    scoreViewModel = scoreViewModel
+                )
             }
 
             composable("classroom") {
@@ -106,6 +112,7 @@ fun AppNavigation(
 
             composable("profile") {
                 ProfileScreen(
+                    profileViewModel = profileViewModel,
                     onEditProfileClick = {
                         navController.navigate("profile/edit")
                     },
@@ -114,8 +121,12 @@ fun AppNavigation(
                     },
                     onLogoutClick = {
                         FirebaseAuth.getInstance().signOut()
+                        loginViewModel.resetState()
                         navController.navigate("login") {
-                            popUpTo(0) { inclusive = true }
+                            popUpTo(navController.graph.id) {
+                                inclusive = true
+                            }
+                            launchSingleTop = true
                         }
                     }
                 )
@@ -123,6 +134,7 @@ fun AppNavigation(
 
             composable("profile/edit") {
                 EditProfileScreen(
+                    profileViewModel = profileViewModel,
                     onBack = {
                         navController.popBackStack()
                     }

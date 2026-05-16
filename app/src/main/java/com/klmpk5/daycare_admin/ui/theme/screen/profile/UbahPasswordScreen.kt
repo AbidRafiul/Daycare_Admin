@@ -69,7 +69,7 @@ fun ChangePasswordScreen(
             ProfilePageHeader(
                 title = "Ubah Password",
                 subtitle = "Kelola keamanan akun admin/guru",
-                emoji = "🔐",
+                emoji = "Key",
                 onBack = onBack
             )
 

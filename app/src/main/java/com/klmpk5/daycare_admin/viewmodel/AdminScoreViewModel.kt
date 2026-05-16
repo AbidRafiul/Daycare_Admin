@@ -18,6 +18,10 @@ class AdminScoreViewModel(
         return repository.getScoresByChildLocal(childId)
     }
 
+    fun getScoresByDate(date: String): Flow<List<DailyScore>> {
+        return repository.getScoresByDateLocal(date)
+    }
+
     // Dipanggil tim UI pas masuk ke halaman detail anak
     fun syncScores(childId: String) {
         viewModelScope.launch {
