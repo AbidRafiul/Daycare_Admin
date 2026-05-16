@@ -2,6 +2,7 @@ package com.klmpk5.daycare_admin.ui.theme.screen.classroom
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
@@ -34,6 +35,9 @@ import com.klmpk5.daycare_admin.ui.theme.screen.weeklyplan.WeeklyPlanScreen
 import com.klmpk5.daycare_admin.viewmodel.AdminChildViewModel
 import com.klmpk5.daycare_admin.viewmodel.AdminWeeklyPlanViewModel
 import com.klmpk5.daycare_admin.viewmodel.AttendanceViewModel
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import java.util.UUID
 
 /**
@@ -644,12 +648,11 @@ fun MasterDataChildForm(
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            ClassroomTextField(
+            ClassroomDateField(
                 value = birthDate,
-                onValueChange = { birthDate = it },
+                onDateSelected = { birthDate = it },
                 label = "Tanggal Lahir",
-                placeholder = "YYYY-MM-DD",
-                keyboardType = KeyboardType.Text
+                placeholder = "Pilih tanggal lahir"
             )
 
             Spacer(modifier = Modifier.height(18.dp))
@@ -1171,6 +1174,97 @@ fun ClassroomTextField(
             cursorColor = DaycarePrimary
         )
     )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ClassroomDateField(
+    value: String,
+    onDateSelected: (String) -> Unit,
+    label: String,
+    placeholder: String
+) {
+    var showPicker by remember { mutableStateOf(false) }
+
+    Box(modifier = Modifier.fillMaxWidth()) {
+        OutlinedTextField(
+            value = value,
+            onValueChange = {},
+            readOnly = true,
+            modifier = Modifier.fillMaxWidth(),
+            label = {
+                Text(text = label)
+            },
+            placeholder = {
+                Text(text = placeholder)
+            },
+            trailingIcon = {
+                Text(
+                    text = "Pilih",
+                    modifier = Modifier.padding(end = 12.dp),
+                    color = DaycarePrimary,
+                    fontWeight = FontWeight.SemiBold
+                )
+            },
+            singleLine = true,
+            shape = RoundedCornerShape(18.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = DaycarePrimary,
+                unfocusedBorderColor = DaycareBorder,
+                focusedLabelColor = DaycarePrimary,
+                cursorColor = DaycarePrimary
+            )
+        )
+
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .clickable { showPicker = true }
+        )
+    }
+
+    if (showPicker) {
+        val datePickerState = rememberDatePickerState(
+            initialSelectedDateMillis = parseDateMillis(value)
+        )
+
+        DatePickerDialog(
+            onDismissRequest = {
+                showPicker = false
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        datePickerState.selectedDateMillis?.let { millis ->
+                            onDateSelected(formatDateMillis(millis))
+                        }
+                        showPicker = false
+                    }
+                ) {
+                    Text("Pilih", color = DaycarePrimary)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showPicker = false }) {
+                    Text("Batal", color = DaycarePrimary)
+                }
+            }
+        ) {
+            DatePicker(state = datePickerState)
+        }
+    }
+}
+
+private fun parseDateMillis(value: String): Long? {
+    return try {
+        SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).parse(value)?.time
+    } catch (e: Exception) {
+        null
+    }
+}
+
+private fun formatDateMillis(millis: Long): String {
+    return SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date(millis))
 }
 
 /**
