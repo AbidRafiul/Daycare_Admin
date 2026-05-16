@@ -59,4 +59,8 @@ class LoginViewModel(
             }
         }
     }
+
+    fun resetState() {
+        _loginState.value = LoginState.Idle
+    }
 }
