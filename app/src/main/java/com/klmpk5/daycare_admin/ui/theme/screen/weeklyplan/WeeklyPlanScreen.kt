@@ -2,6 +2,7 @@ package com.klmpk5.daycare_admin.ui.theme.screen.weeklyplan
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -27,11 +28,16 @@ import com.klmpk5.daycare_admin.ui.theme.DaycareTextPrimary
 import com.klmpk5.daycare_admin.ui.theme.DaycareTextSecondary
 import com.klmpk5.daycare_admin.viewmodel.AdminWeeklyPlanViewModel
 import com.klmpk5.daycare_admin.viewmodel.WeeklyPlanSaveState
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import java.util.UUID
 
 @Composable
 fun WeeklyPlanScreen(
-    weeklyPlanViewModel: AdminWeeklyPlanViewModel
+    weeklyPlanViewModel: AdminWeeklyPlanViewModel,
+    showHeader: Boolean = true,
+    showList: Boolean = true
 ) {
     val weeklyPlans by weeklyPlanViewModel.weeklyPlans.collectAsState(initial = emptyList())
     val saveState by weeklyPlanViewModel.saveState.collectAsState()
@@ -67,7 +73,9 @@ fun WeeklyPlanScreen(
             .background(DaycareBackground)
             .padding(bottom = 24.dp)
     ) {
-        WeeklyPlanHeader()
+        if (showHeader) {
+            WeeklyPlanHeader()
+        }
 
         WeeklyPlanFormCard(
             startDate = startDate,
@@ -105,33 +113,35 @@ fun WeeklyPlanScreen(
             },
             modifier = Modifier
                 .padding(horizontal = 20.dp)
-                .offset(y = (-36).dp)
+                .offset(y = if (showHeader) (-36).dp else (-34).dp)
         )
 
-        Spacer(modifier = Modifier.height(4.dp))
+        if (showList) {
+            Spacer(modifier = Modifier.height(4.dp))
 
-        WeeklyPlanListHeader(
-            total = weeklyPlans.size,
-            modifier = Modifier
-                .padding(horizontal = 20.dp)
-                .offset(y = (-36).dp)
-        )
-
-        if (weeklyPlans.isEmpty()) {
-            EmptyWeeklyPlanCard(
+            WeeklyPlanListHeader(
+                total = weeklyPlans.size,
                 modifier = Modifier
                     .padding(horizontal = 20.dp)
                     .offset(y = (-36).dp)
             )
-        } else {
-            weeklyPlans.forEach { plan ->
-                WeeklyPlanItemCard(
-                    plan = plan,
+
+            if (weeklyPlans.isEmpty()) {
+                EmptyWeeklyPlanCard(
                     modifier = Modifier
                         .padding(horizontal = 20.dp)
-                        .padding(bottom = 12.dp)
                         .offset(y = (-36).dp)
                 )
+            } else {
+                weeklyPlans.forEach { plan ->
+                    WeeklyPlanItemCard(
+                        plan = plan,
+                        modifier = Modifier
+                            .padding(horizontal = 20.dp)
+                            .padding(bottom = 12.dp)
+                            .offset(y = (-36).dp)
+                    )
+                }
             }
         }
     }
@@ -142,7 +152,7 @@ fun WeeklyPlanHeader() {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(190.dp)
+            .height(164.dp)
             .background(
                 Brush.verticalGradient(
                     colors = listOf(
@@ -166,7 +176,9 @@ fun WeeklyPlanHeader() {
         )
 
         Column(
-            modifier = Modifier.align(Alignment.CenterStart)
+            modifier = Modifier
+                .align(Alignment.CenterStart)
+                .offset(y = (-22).dp)
         ) {
             Text(
                 text = "Weekly Plan",
@@ -188,7 +200,7 @@ fun WeeklyPlanHeader() {
         Box(
             modifier = Modifier
                 .align(Alignment.TopEnd)
-                .padding(top = 22.dp)
+                .padding(top = 12.dp)
                 .size(44.dp)
                 .background(
                     color = Color.White.copy(alpha = 0.16f),
@@ -238,22 +250,20 @@ fun WeeklyPlanFormCard(
 
             Spacer(modifier = Modifier.height(18.dp))
 
-            WeeklyPlanTextField(
+            WeeklyPlanDateField(
                 value = startDate,
-                onValueChange = onStartDateChange,
+                onDateSelected = onStartDateChange,
                 label = "Tanggal Mulai",
-                placeholder = "YYYY-MM-DD",
-                keyboardType = KeyboardType.Text
+                placeholder = "Pilih tanggal mulai"
             )
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            WeeklyPlanTextField(
+            WeeklyPlanDateField(
                 value = endDate,
-                onValueChange = onEndDateChange,
+                onDateSelected = onEndDateChange,
                 label = "Tanggal Selesai",
-                placeholder = "YYYY-MM-DD",
-                keyboardType = KeyboardType.Text
+                placeholder = "Pilih tanggal selesai"
             )
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -407,6 +417,85 @@ fun WeeklySectionTitle(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun WeeklyPlanDateField(
+    value: String,
+    onDateSelected: (String) -> Unit,
+    label: String,
+    placeholder: String
+) {
+    var showPicker by remember { mutableStateOf(false) }
+
+    Box(modifier = Modifier.fillMaxWidth()) {
+        OutlinedTextField(
+            value = value,
+            onValueChange = {},
+            readOnly = true,
+            modifier = Modifier.fillMaxWidth(),
+            label = {
+                Text(label)
+            },
+            placeholder = {
+                Text(placeholder)
+            },
+            trailingIcon = {
+                Text(
+                    text = "Pilih",
+                    modifier = Modifier.padding(end = 12.dp),
+                    color = DaycarePrimary,
+                    fontWeight = FontWeight.SemiBold
+                )
+            },
+            singleLine = true,
+            shape = RoundedCornerShape(18.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = DaycarePrimary,
+                unfocusedBorderColor = DaycareBorder,
+                focusedLabelColor = DaycarePrimary,
+                cursorColor = DaycarePrimary
+            )
+        )
+
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .clickable { showPicker = true }
+        )
+    }
+
+    if (showPicker) {
+        val datePickerState = rememberDatePickerState(
+            initialSelectedDateMillis = parseDateMillis(value)
+        )
+
+        DatePickerDialog(
+            onDismissRequest = {
+                showPicker = false
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        datePickerState.selectedDateMillis?.let { millis ->
+                            onDateSelected(formatDateMillis(millis))
+                        }
+                        showPicker = false
+                    }
+                ) {
+                    Text("Pilih", color = DaycarePrimary)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showPicker = false }) {
+                    Text("Batal", color = DaycarePrimary)
+                }
+            }
+        ) {
+            DatePicker(state = datePickerState)
+        }
+    }
+}
+
 @Composable
 fun WeeklyPlanTextField(
     value: String,
@@ -437,6 +526,18 @@ fun WeeklyPlanTextField(
             cursorColor = DaycarePrimary
         )
     )
+}
+
+private fun parseDateMillis(value: String): Long? {
+    return try {
+        SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).parse(value)?.time
+    } catch (e: Exception) {
+        null
+    }
+}
+
+private fun formatDateMillis(millis: Long): String {
+    return SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date(millis))
 }
 
 @Composable

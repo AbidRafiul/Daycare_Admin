@@ -1,7 +1,11 @@
 package com.klmpk5.daycare_admin.ui.theme.screen.classroom
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
@@ -11,14 +15,20 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.FileProvider
+import coil.compose.AsyncImage
 import com.klmpk5.daycare_admin.data.local.entities.Child
+import com.klmpk5.daycare_admin.data.local.entities.WeeklyPlan
 import com.klmpk5.daycare_admin.ui.theme.DaycareBackground
 import com.klmpk5.daycare_admin.ui.theme.DaycareBorder
 import com.klmpk5.daycare_admin.ui.theme.DaycarePrimary
@@ -26,10 +36,17 @@ import com.klmpk5.daycare_admin.ui.theme.DaycarePrimaryLight
 import com.klmpk5.daycare_admin.ui.theme.DaycareTextMuted
 import com.klmpk5.daycare_admin.ui.theme.DaycareTextPrimary
 import com.klmpk5.daycare_admin.ui.theme.DaycareTextSecondary
+import com.klmpk5.daycare_admin.ui.theme.screen.weeklyplan.EmptyWeeklyPlanCard
+import com.klmpk5.daycare_admin.ui.theme.screen.weeklyplan.WeeklyPlanItemCard
+import com.klmpk5.daycare_admin.ui.theme.screen.weeklyplan.WeeklyPlanListHeader
 import com.klmpk5.daycare_admin.ui.theme.screen.weeklyplan.WeeklyPlanScreen
 import com.klmpk5.daycare_admin.viewmodel.AdminChildViewModel
 import com.klmpk5.daycare_admin.viewmodel.AdminWeeklyPlanViewModel
 import com.klmpk5.daycare_admin.viewmodel.AttendanceViewModel
+import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import java.util.UUID
 
 /**
@@ -49,11 +66,13 @@ fun ClassroomScreen(
     attendanceViewModel: AttendanceViewModel,
     weeklyPlanViewModel: AdminWeeklyPlanViewModel
 ) {
-    var selectedMenu by remember { mutableStateOf(ClassroomMenu.MASTER_DATA) }
+    var selectedMenu by remember { mutableStateOf<ClassroomMenu?>(null) }
     var masterDataPage by remember { mutableStateOf(MasterDataPage.LIST) }
     var selectedChildForEdit by remember { mutableStateOf<Child?>(null) }
+    val weeklyPlans by weeklyPlanViewModel.weeklyPlans.collectAsState(initial = emptyList())
 
     Scaffold(
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         containerColor = DaycareBackground
     ) { innerPadding ->
 
@@ -64,78 +83,142 @@ fun ClassroomScreen(
                 .padding(innerPadding),
             contentPadding = PaddingValues(bottom = 24.dp)
         ) {
-            item {
-                ClassroomHeader()
-            }
+            when {
+                selectedMenu == ClassroomMenu.MASTER_DATA &&
+                    masterDataPage == MasterDataPage.FORM -> {
+                    item {
+                        ChildPageHeader(
+                            title = if (selectedChildForEdit == null) "Tambah Anak" else "Edit Anak",
+                            subtitle = if (selectedChildForEdit == null) {
+                                "Isi data anak baru"
+                            } else {
+                                "Perbarui data anak"
+                            },
+                            onBack = {
+                                selectedChildForEdit = null
+                                masterDataPage = MasterDataPage.LIST
+                            }
+                        )
+                    }
 
-            item {
-                ClassroomMenuGrid(
-                    selectedMenu = selectedMenu,
-                    onMenuClick = {
-                        selectedMenu = it
-                        if (it == ClassroomMenu.MASTER_DATA) {
-                            masterDataPage = MasterDataPage.LIST
-                            selectedChildForEdit = null
-                        }
-                    },
-                    modifier = Modifier
-                        .padding(horizontal = 20.dp)
-                        .offset(y = (-34).dp)
-                )
-            }
-
-            item {
-                when (selectedMenu) {
-                    ClassroomMenu.MASTER_DATA -> {
-                        Column(
+                    item {
+                        MasterDataChildForm(
+                            adminChildViewModel = adminChildViewModel,
+                            selectedChild = selectedChildForEdit,
+                            onBackToList = {
+                                selectedChildForEdit = null
+                                masterDataPage = MasterDataPage.LIST
+                            },
+                            onSaveComplete = {
+                                selectedChildForEdit = null
+                                masterDataPage = MasterDataPage.LIST
+                            },
                             modifier = Modifier
                                 .padding(horizontal = 20.dp)
                                 .offset(y = (-34).dp)
-                        ) {
-                            when (masterDataPage) {
-                                MasterDataPage.LIST -> {
-                                    ChildListSection(
-                                        adminChildViewModel = adminChildViewModel,
-                                        onAddClick = {
-                                            selectedChildForEdit = null
-                                            masterDataPage = MasterDataPage.FORM
-                                        },
-                                        onEditClick = { child ->
-                                            selectedChildForEdit = child
-                                            masterDataPage = MasterDataPage.FORM
-                                        }
-                                    )
-                                }
+                        )
+                    }
+                }
 
-                                MasterDataPage.FORM -> {
-                                    MasterDataChildForm(
-                                        adminChildViewModel = adminChildViewModel,
-                                        selectedChild = selectedChildForEdit,
-                                        onCancel = {
-                                            selectedChildForEdit = null
-                                            masterDataPage = MasterDataPage.LIST
-                                        },
-                                        onFinishEdit = {
-                                            selectedChildForEdit = null
-                                            masterDataPage = MasterDataPage.LIST
-                                        }
-                                    )
-                                }
+                selectedMenu == ClassroomMenu.MASTER_DATA -> {
+                    item {
+                        ChildPageHeader(
+                            title = "Daftar Anak",
+                            subtitle = "Kelola master data anak daycare",
+                            onBack = {
+                                selectedChildForEdit = null
+                                masterDataPage = MasterDataPage.LIST
+                                selectedMenu = null
                             }
-                        }
+                        )
                     }
 
-                    ClassroomMenu.ATTENDANCE -> {
+                    item {
+                        ChildListSection(
+                            adminChildViewModel = adminChildViewModel,
+                            onAddClick = {
+                                selectedChildForEdit = null
+                                masterDataPage = MasterDataPage.FORM
+                            },
+                            onEditClick = { child ->
+                                selectedChildForEdit = child
+                                masterDataPage = MasterDataPage.FORM
+                            },
+                            modifier = Modifier
+                                .padding(horizontal = 20.dp)
+                                .offset(y = (-34).dp)
+                        )
+                    }
+                }
+
+                selectedMenu == ClassroomMenu.ATTENDANCE -> {
+                    item {
+                        ChildPageHeader(
+                            title = "Presensi",
+                            subtitle = "Kelola kehadiran anak daycare hari ini",
+                            onBack = {
+                                selectedMenu = null
+                            }
+                        )
+                    }
+
+                    item {
                         AttendanceScreen(
                             adminChildViewModel = adminChildViewModel,
-                            attendanceViewModel = attendanceViewModel
+                            attendanceViewModel = attendanceViewModel,
+                            showHeader = false
                         )
+                    }
+                }
 
+                selectedMenu == ClassroomMenu.WEEKLY_PLAN -> {
+                    item {
+                        ChildPageHeader(
+                            title = "Weekly Plan",
+                            subtitle = "Tambah rencana kegiatan mingguan",
+                            onBack = {
+                                selectedMenu = null
+                            }
+                        )
                     }
 
-                    ClassroomMenu.WEEKLY_PLAN -> {
+                    item {
                         WeeklyPlanScreen(
-                            weeklyPlanViewModel = weeklyPlanViewModel
+                            weeklyPlanViewModel = weeklyPlanViewModel,
+                            showHeader = false,
+                            showList = false
+                        )
+                    }
+                }
+
+                else -> {
+                    item {
+                        ClassroomHeader()
+                    }
+
+                    item {
+                        ClassroomMenuGrid(
+                            selectedMenu = selectedMenu,
+                            onMenuClick = { menu ->
+                                selectedMenu = menu
+                                if (menu == ClassroomMenu.MASTER_DATA) {
+                                    selectedChildForEdit = null
+                                    masterDataPage = MasterDataPage.LIST
+                                }
+                            },
+                            modifier = Modifier
+                                .padding(horizontal = 20.dp)
+                                .offset(y = (-34).dp)
+                        )
+                    }
+
+                    item {
+                        ClassroomWeeklyPlanSection(
+                            total = weeklyPlans.size,
+                            weeklyPlans = weeklyPlans,
+                            modifier = Modifier
+                                .padding(horizontal = 20.dp)
+                                .offset(y = (-18).dp)
                         )
                     }
                 }
@@ -152,7 +235,7 @@ fun ClassroomHeader() {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(190.dp)
+            .height(164.dp)
             .background(
                 Brush.verticalGradient(
                     colors = listOf(
@@ -190,6 +273,7 @@ fun ClassroomHeader() {
         Column(
             modifier = Modifier
                 .align(Alignment.CenterStart)
+                .offset(y = (-22).dp)
         ) {
             Text(
                 text = "Classroom",
@@ -211,6 +295,71 @@ fun ClassroomHeader() {
     }
 }
 
+@Composable
+fun ChildPageHeader(
+    title: String,
+    subtitle: String,
+    onBack: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(164.dp)
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(
+                        DaycarePrimary,
+                        Color(0xFF23897D)
+                    )
+                )
+            )
+            .padding(horizontal = 22.dp)
+            .statusBarsPadding()
+    ) {
+        Surface(
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .padding(top = 8.dp)
+                .size(42.dp),
+            onClick = onBack,
+            color = Color.White.copy(alpha = 0.16f),
+            shape = CircleShape
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Text(
+                    text = "<",
+                    color = Color.White,
+                    fontSize = 28.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
+
+        Column(
+            modifier = Modifier
+                .align(Alignment.CenterStart)
+                .padding(start = 58.dp, end = 4.dp)
+                .offset(y = (-18).dp)
+        ) {
+            Text(
+                text = title,
+                color = Color.White,
+                fontSize = 27.sp,
+                fontWeight = FontWeight.Bold
+            )
+
+            Spacer(modifier = Modifier.height(6.dp))
+
+            Text(
+                text = subtitle,
+                color = Color.White.copy(alpha = 0.90f),
+                fontSize = 14.sp,
+                lineHeight = 20.sp
+            )
+        }
+    }
+}
+
 /**
  * Grid menu Classroom.
  *
@@ -218,7 +367,7 @@ fun ClassroomHeader() {
  */
 @Composable
 fun ClassroomMenuGrid(
-    selectedMenu: ClassroomMenu,
+    selectedMenu: ClassroomMenu?,
     onMenuClick: (ClassroomMenu) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -290,6 +439,31 @@ fun ClassroomMenuGrid(
                     onClick = { onMenuClick(ClassroomMenu.WEEKLY_PLAN) }
                 )
             }
+        }
+    }
+}
+
+@Composable
+fun ClassroomWeeklyPlanSection(
+    total: Int,
+    weeklyPlans: List<WeeklyPlan>,
+    modifier: Modifier = Modifier
+) {
+    Column(modifier = modifier.fillMaxWidth()) {
+        WeeklyPlanListHeader(total = total)
+
+        if (weeklyPlans.isEmpty()) {
+            EmptyWeeklyPlanCard()
+        } else {
+            weeklyPlans
+                .sortedByDescending { it.startDate }
+                .take(3)
+                .forEach { plan ->
+                    WeeklyPlanItemCard(
+                        plan = plan,
+                        modifier = Modifier.padding(bottom = 12.dp)
+                    )
+                }
         }
     }
 }
@@ -368,9 +542,10 @@ fun MasterDataChildForm(
     adminChildViewModel: AdminChildViewModel,
     modifier: Modifier = Modifier,
     selectedChild: Child? = null,
-    onCancel: () -> Unit = {},
-    onFinishEdit: () -> Unit = {}
+    onBackToList: () -> Unit,
+    onSaveComplete: () -> Unit
 ) {
+    val context = LocalContext.current
     var fullName by remember { mutableStateOf("") }
     var nickName by remember { mutableStateOf("") }
     var birthDate by remember { mutableStateOf("") }
@@ -378,6 +553,8 @@ fun MasterDataChildForm(
     var parentUserId by remember { mutableStateOf("") }
     var parentEmail by remember { mutableStateOf("") }
     var photoUrl by remember { mutableStateOf("") }
+    var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
+    var pendingCameraUri by remember { mutableStateOf<Uri?>(null) }
     var isActive by remember { mutableStateOf(true) }
 
     var message by remember { mutableStateOf<String?>(null) }
@@ -391,6 +568,8 @@ fun MasterDataChildForm(
             parentUserId = selectedChild.parentUserId ?: ""
             parentEmail = selectedChild.parentEmail ?: ""
             photoUrl = selectedChild.photoUrl ?: ""
+            selectedImageUri = null
+            pendingCameraUri = null
             isActive = selectedChild.isActive
             message = "Mode edit data anak"
         } else {
@@ -401,8 +580,22 @@ fun MasterDataChildForm(
             parentUserId = ""
             parentEmail = ""
             photoUrl = ""
+            selectedImageUri = null
+            pendingCameraUri = null
             isActive = true
             message = null
+        }
+    }
+
+    val cameraLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicture()
+    ) { success ->
+        if (success) {
+            selectedImageUri = pendingCameraUri
+            photoUrl = ""
+            message = "Foto anak siap diupload"
+        } else {
+            message = "Pengambilan foto dibatalkan"
         }
     }
 
@@ -452,7 +645,11 @@ fun MasterDataChildForm(
                     Spacer(modifier = Modifier.height(3.dp))
 
                     Text(
-                        text = "Lengkapi data anak daycare",
+                        text = if (selectedChild == null) {
+                            "Isi form untuk menambahkan anak daycare"
+                        } else {
+                            "Perbarui data anak daycare"
+                        },
                         fontSize = 13.sp,
                         color = DaycareTextSecondary
                     )
@@ -479,12 +676,11 @@ fun MasterDataChildForm(
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            ClassroomTextField(
+            ClassroomDateField(
                 value = birthDate,
-                onValueChange = { birthDate = it },
+                onDateSelected = { birthDate = it },
                 label = "Tanggal Lahir",
-                placeholder = "YYYY-MM-DD",
-                keyboardType = KeyboardType.Text
+                placeholder = "Pilih tanggal lahir"
             )
 
             Spacer(modifier = Modifier.height(18.dp))
@@ -535,11 +731,20 @@ fun MasterDataChildForm(
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            ClassroomTextField(
-                value = photoUrl,
-                onValueChange = { photoUrl = it },
-                label = "Photo URL",
-                placeholder = "Optional, URL foto anak"
+            ChildPhotoCameraField(
+                selectedImageUri = selectedImageUri,
+                currentPhotoUrl = photoUrl.ifBlank { null },
+                gender = gender,
+                onTakePhoto = {
+                    val imageUri = createChildCameraImageUri(context)
+                    pendingCameraUri = imageUri
+                    cameraLauncher.launch(imageUri)
+                },
+                onRemovePhoto = {
+                    selectedImageUri = null
+                    photoUrl = ""
+                    message = "Foto anak dihapus dari form"
+                }
             )
 
             Spacer(modifier = Modifier.height(18.dp))
@@ -598,6 +803,10 @@ fun MasterDataChildForm(
                     color = if (
                         message == "Data anak berhasil disimpan" ||
                         message == "Data anak berhasil diperbarui" ||
+                        message == "Data anak dan foto sedang disimpan" ||
+                        message == "Data anak dan foto sedang diperbarui" ||
+                        message == "Foto anak siap diupload" ||
+                        message == "Foto anak dihapus dari form" ||
                         message == "Mode edit data anak"
                     ) {
                         DaycarePrimary
@@ -643,19 +852,19 @@ fun MasterDataChildForm(
                     if (selectedChild == null) {
                         adminChildViewModel.addChild(
                             child = child,
-                            imageUri = null
+                            imageUri = selectedImageUri
                         )
                     } else {
                         adminChildViewModel.updateChild(
                             child = child,
-                            imageUri = null
+                            imageUri = selectedImageUri
                         )
                     }
 
                     message = if (selectedChild == null) {
-                        "Data anak berhasil disimpan"
+                        if (selectedImageUri == null) "Data anak berhasil disimpan" else "Data anak dan foto sedang disimpan"
                     } else {
-                        "Data anak berhasil diperbarui"
+                        if (selectedImageUri == null) "Data anak berhasil diperbarui" else "Data anak dan foto sedang diperbarui"
                     }
 
                     fullName = ""
@@ -665,8 +874,10 @@ fun MasterDataChildForm(
                     parentUserId = ""
                     parentEmail = ""
                     photoUrl = ""
+                    selectedImageUri = null
+                    pendingCameraUri = null
                     isActive = true
-                    onFinishEdit()
+                    onSaveComplete()
                 },
                 modifier = Modifier
                     .fillMaxWidth()
@@ -677,7 +888,7 @@ fun MasterDataChildForm(
                 )
             ) {
                 Text(
-                    text = if (selectedChild == null) "Simpan Data Anak" else "Update Data Anak",
+                    text = if (selectedChild == null) "Simpan Data Anak" else "Simpan Perubahan",
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color.White
@@ -688,15 +899,7 @@ fun MasterDataChildForm(
 
             OutlinedButton(
                 onClick = {
-                    fullName = ""
-                    nickName = ""
-                    birthDate = ""
-                    gender = "Laki-laki"
-                    parentUserId = ""
-                    parentEmail = ""
-                    photoUrl = ""
-                    isActive = true
-                    message = null
+                    onBackToList()
                 },
                 modifier = Modifier
                     .fillMaxWidth()
@@ -708,19 +911,6 @@ fun MasterDataChildForm(
                 )
             ) {
                 Text(
-                    text = "Reset Form",
-                    color = DaycarePrimary,
-                    fontWeight = FontWeight.SemiBold
-                )
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            TextButton(
-                onClick = onCancel,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(
                     text = "Kembali ke Daftar Anak",
                     color = DaycarePrimary,
                     fontWeight = FontWeight.SemiBold
@@ -729,6 +919,117 @@ fun MasterDataChildForm(
         }
     }
 }
+
+@Composable
+fun ChildPhotoCameraField(
+    selectedImageUri: Uri?,
+    currentPhotoUrl: String?,
+    gender: String,
+    onTakePhoto: () -> Unit,
+    onRemovePhoto: () -> Unit
+) {
+    val photoModel: Any? = selectedImageUri ?: currentPhotoUrl
+
+    Surface(
+        color = DaycarePrimaryLight.copy(alpha = 0.55f),
+        shape = RoundedCornerShape(18.dp),
+        border = BorderStroke(
+            width = 1.dp,
+            color = DaycarePrimary.copy(alpha = 0.12f)
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp)
+        ) {
+            Text(
+                text = "Foto Anak",
+                fontSize = 15.sp,
+                fontWeight = FontWeight.Bold,
+                color = DaycareTextPrimary
+            )
+
+            Spacer(modifier = Modifier.height(6.dp))
+
+            Text(
+                text = when {
+                    selectedImageUri != null -> "Foto baru akan diupload ke Cloudinary saat disimpan"
+                    !currentPhotoUrl.isNullOrBlank() -> "Foto anak saat ini tersimpan di Cloudinary"
+                    else -> "Ambil foto langsung dari kamera"
+                },
+                fontSize = 12.sp,
+                color = DaycareTextSecondary
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            if (photoModel != null) {
+                AsyncImage(
+                    model = photoModel,
+                    contentDescription = "Foto anak",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(180.dp)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(Color.White),
+                    contentScale = ContentScale.Crop
+                )
+            } else {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(150.dp)
+                        .background(
+                            color = Color.White.copy(alpha = 0.82f),
+                            shape = RoundedCornerShape(16.dp)
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = if (gender == "Perempuan") "Foto anak perempuan" else "Foto anak laki-laki",
+                        fontSize = 13.sp,
+                        color = DaycareTextMuted
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            OutlinedButton(
+                onClick = onTakePhoto,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp),
+                shape = RoundedCornerShape(16.dp),
+                border = BorderStroke(
+                    width = 1.dp,
+                    color = DaycarePrimary
+                )
+            ) {
+                Text(
+                    text = if (photoModel == null) "Ambil Foto" else "Ambil Ulang Foto",
+                    color = DaycarePrimary,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+
+            if (photoModel != null) {
+                Spacer(modifier = Modifier.height(8.dp))
+
+                TextButton(
+                    onClick = onRemovePhoto,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = "Hapus Foto",
+                        color = Color(0xFFB91C1C),
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            }
+        }
+    }
+}
+
 /**
  * Daftar Anak di Master Data Menu Classroom.
  */
@@ -1024,6 +1325,114 @@ fun ClassroomTextField(
     )
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ClassroomDateField(
+    value: String,
+    onDateSelected: (String) -> Unit,
+    label: String,
+    placeholder: String
+) {
+    var showPicker by remember { mutableStateOf(false) }
+
+    Box(modifier = Modifier.fillMaxWidth()) {
+        OutlinedTextField(
+            value = value,
+            onValueChange = {},
+            readOnly = true,
+            modifier = Modifier.fillMaxWidth(),
+            label = {
+                Text(text = label)
+            },
+            placeholder = {
+                Text(text = placeholder)
+            },
+            trailingIcon = {
+                Text(
+                    text = "Pilih",
+                    modifier = Modifier.padding(end = 12.dp),
+                    color = DaycarePrimary,
+                    fontWeight = FontWeight.SemiBold
+                )
+            },
+            singleLine = true,
+            shape = RoundedCornerShape(18.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = DaycarePrimary,
+                unfocusedBorderColor = DaycareBorder,
+                focusedLabelColor = DaycarePrimary,
+                cursorColor = DaycarePrimary
+            )
+        )
+
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .clickable { showPicker = true }
+        )
+    }
+
+    if (showPicker) {
+        val datePickerState = rememberDatePickerState(
+            initialSelectedDateMillis = parseDateMillis(value)
+        )
+
+        DatePickerDialog(
+            onDismissRequest = {
+                showPicker = false
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        datePickerState.selectedDateMillis?.let { millis ->
+                            onDateSelected(formatDateMillis(millis))
+                        }
+                        showPicker = false
+                    }
+                ) {
+                    Text("Pilih", color = DaycarePrimary)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showPicker = false }) {
+                    Text("Batal", color = DaycarePrimary)
+                }
+            }
+        ) {
+            DatePicker(state = datePickerState)
+        }
+    }
+}
+
+private fun parseDateMillis(value: String): Long? {
+    return try {
+        SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).parse(value)?.time
+    } catch (e: Exception) {
+        null
+    }
+}
+
+private fun formatDateMillis(millis: Long): String {
+    return SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date(millis))
+}
+
+fun createChildCameraImageUri(context: android.content.Context): Uri {
+    val imageDir = File(context.cacheDir, "images")
+    imageDir.mkdirs()
+
+    val imageFile = File.createTempFile(
+        "child_${System.currentTimeMillis()}_",
+        ".jpg",
+        imageDir
+    )
+
+    return FileProvider.getUriForFile(
+        context,
+        "${context.packageName}.fileprovider",
+        imageFile
+    )
+}
+
 /**
  * Chip untuk pilihan gender anak.
  */
@@ -1148,7 +1557,7 @@ enum class ClassroomMenu {
     WEEKLY_PLAN
 }
 
-enum class MasterDataPage {
+private enum class MasterDataPage {
     LIST,
     FORM
 }

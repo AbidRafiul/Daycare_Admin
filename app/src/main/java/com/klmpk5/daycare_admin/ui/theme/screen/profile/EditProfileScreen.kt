@@ -1,13 +1,37 @@
 package com.klmpk5.daycare_admin.ui.screen.profile
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -16,38 +40,68 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.google.firebase.auth.FirebaseAuth
 import com.klmpk5.daycare_admin.ui.theme.DaycareBackground
 import com.klmpk5.daycare_admin.ui.theme.DaycareBorder
 import com.klmpk5.daycare_admin.ui.theme.DaycarePrimary
-import com.klmpk5.daycare_admin.ui.theme.DaycarePrimaryLight
 import com.klmpk5.daycare_admin.ui.theme.DaycareTextPrimary
 import com.klmpk5.daycare_admin.ui.theme.DaycareTextSecondary
+import com.klmpk5.daycare_admin.viewmodel.ProfileSaveState
+import com.klmpk5.daycare_admin.viewmodel.ProfileViewModel
 
 /**
- * EditProfileScreen adalah halaman edit profil admin/guru.
- *
- * Untuk sekarang:
- * - data email diambil dari FirebaseAuth.currentUser
- * - tombol simpan masih UI state lokal
- *
- * Nanti bisa disambungkan ke Firestore users.
+ * Form profil hanya berisi nama, email, dan keterangan.
  */
 @Composable
 fun EditProfileScreen(
+    profileViewModel: ProfileViewModel,
     onBack: () -> Unit
 ) {
-    val currentUser = FirebaseAuth.getInstance().currentUser
-    val email = currentUser?.email ?: ""
+    val profileState by profileViewModel.profileState.collectAsState()
+    val saveState by profileViewModel.profileSaveState.collectAsState()
 
-    var fullName by remember { mutableStateOf("Admin Daycare") }
-    var userEmail by remember { mutableStateOf(email) }
-    var phoneNumber by remember { mutableStateOf("") }
-    var role by remember { mutableStateOf("Admin / Guru") }
-    var bio by remember { mutableStateOf("") }
+    var fullName by remember { mutableStateOf("") }
+    var userEmail by remember { mutableStateOf("") }
+    var description by remember { mutableStateOf("") }
     var message by remember { mutableStateOf<String?>(null) }
+    var formInitialized by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        profileViewModel.resetProfileSaveState()
+        profileViewModel.loadProfile()
+    }
+
+    LaunchedEffect(
+        profileState.fullName,
+        profileState.email,
+        profileState.description,
+        profileState.isLoading
+    ) {
+        if (!formInitialized && !profileState.isLoading) {
+            fullName = profileState.fullName
+            userEmail = profileState.email
+            description = profileState.description
+            formInitialized = true
+        }
+    }
+
+    LaunchedEffect(saveState) {
+        when (saveState) {
+            is ProfileSaveState.Success -> {
+                message = (saveState as ProfileSaveState.Success).message
+                profileViewModel.resetProfileSaveState()
+            }
+
+            is ProfileSaveState.Error -> {
+                message = (saveState as ProfileSaveState.Error).message
+                profileViewModel.resetProfileSaveState()
+            }
+
+            else -> Unit
+        }
+    }
 
     Scaffold(
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         containerColor = DaycareBackground
     ) { innerPadding ->
         Column(
@@ -59,7 +113,7 @@ fun EditProfileScreen(
             ProfilePageHeader(
                 title = "Edit Profil",
                 subtitle = "Ubah informasi akun admin/guru",
-                emoji = "✏️",
+                emoji = "Edit",
                 onBack = onBack
             )
 
@@ -77,96 +131,65 @@ fun EditProfileScreen(
                 )
             ) {
                 Column(
-                    modifier = Modifier.padding(22.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                    modifier = Modifier.padding(22.dp)
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size(92.dp)
-                            .background(
-                                color = DaycarePrimaryLight,
-                                shape = CircleShape
-                            ),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "👩‍🏫",
-                            fontSize = 46.sp
-                        )
-                    }
+                    Text(
+                        text = "Data Profil",
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = DaycareTextPrimary
+                    )
 
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(6.dp))
 
-                    Surface(
-                        color = DaycarePrimaryLight.copy(alpha = 0.60f),
-                        shape = RoundedCornerShape(50),
-                        border = BorderStroke(
-                            width = 1.dp,
-                            color = DaycarePrimary.copy(alpha = 0.15f)
-                        )
-                    ) {
-                        Text(
-                            text = "Ubah Foto",
-                            modifier = Modifier.padding(horizontal = 18.dp, vertical = 8.dp),
-                            color = DaycarePrimary,
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                    }
+                    Text(
+                        text = "Isi hanya nama, email, dan keterangan admin.",
+                        fontSize = 14.sp,
+                        color = DaycareTextSecondary,
+                        lineHeight = 20.sp
+                    )
 
-                    Spacer(modifier = Modifier.height(24.dp))
+                    Spacer(modifier = Modifier.height(22.dp))
 
                     ProfileTextField(
                         value = fullName,
-                        onValueChange = { fullName = it },
-                        label = "Nama Lengkap",
-                        placeholder = "Masukkan nama lengkap"
+                        onValueChange = {
+                            fullName = it
+                            message = null
+                        },
+                        label = "Nama",
+                        placeholder = "Masukkan nama"
                     )
 
                     Spacer(modifier = Modifier.height(14.dp))
 
                     ProfileTextField(
                         value = userEmail,
-                        onValueChange = { userEmail = it },
+                        onValueChange = {
+                            userEmail = it
+                            message = null
+                        },
                         label = "Email",
                         placeholder = "admin@email.com",
-                        keyboardType = KeyboardType.Email,
-                        enabled = false
-                    )
-
-                    Spacer(modifier = Modifier.height(14.dp))
-
-                    ProfileTextField(
-                        value = phoneNumber,
-                        onValueChange = { phoneNumber = it },
-                        label = "No. WhatsApp",
-                        placeholder = "0812-3456-7890",
-                        keyboardType = KeyboardType.Phone
-                    )
-
-                    Spacer(modifier = Modifier.height(14.dp))
-
-                    ProfileTextField(
-                        value = role,
-                        onValueChange = { role = it },
-                        label = "Peran",
-                        placeholder = "Admin / Guru",
-                        enabled = false
+                        keyboardType = KeyboardType.Email
                     )
 
                     Spacer(modifier = Modifier.height(14.dp))
 
                     OutlinedTextField(
-                        value = bio,
-                        onValueChange = { bio = it },
+                        value = description,
+                        onValueChange = {
+                            description = it
+                            message = null
+                        },
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(110.dp),
                         label = {
-                            Text("Tentang Saya")
+                            Text("Keterangan")
                         },
                         placeholder = {
-                            Text("Tuliskan deskripsi singkat...")
+                            Text("Tuliskan keterangan singkat...")
                         },
                         maxLines = 4,
                         shape = RoundedCornerShape(18.dp),
@@ -182,8 +205,12 @@ fun EditProfileScreen(
                         Spacer(modifier = Modifier.height(14.dp))
 
                         Text(
-                            text = message ?: "",
-                            color = DaycarePrimary,
+                            text = message.orEmpty(),
+                            color = if (message?.contains("berhasil", ignoreCase = true) == true) {
+                                DaycarePrimary
+                            } else {
+                                Color(0xFFB91C1C)
+                            },
                             fontSize = 13.sp,
                             fontWeight = FontWeight.SemiBold
                         )
@@ -193,33 +220,36 @@ fun EditProfileScreen(
 
                     Button(
                         onClick = {
-                            message = "Profil berhasil diperbarui"
-                            /**
-                             * TODO:
-                             * Nanti sambungkan ke Firestore collection users.
-                             *
-                             * Contoh konsep:
-                             * profileViewModel.updateProfile(
-                             *     fullName = fullName,
-                             *     phoneNumber = phoneNumber,
-                             *     bio = bio
-                             * )
-                             */
+                            profileViewModel.updateProfile(
+                                fullName = fullName,
+                                email = userEmail,
+                                description = description
+                            )
                         },
+                        enabled = saveState !is ProfileSaveState.Loading,
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(56.dp),
                         shape = RoundedCornerShape(18.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = DaycarePrimary
+                            containerColor = DaycarePrimary,
+                            disabledContainerColor = DaycarePrimary.copy(alpha = 0.45f)
                         )
                     ) {
-                        Text(
-                            text = "Simpan Perubahan",
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White
-                        )
+                        if (saveState is ProfileSaveState.Loading) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(22.dp),
+                                strokeWidth = 2.dp,
+                                color = Color.White
+                            )
+                        } else {
+                            Text(
+                                text = "Simpan Profil",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White
+                            )
+                        }
                     }
                 }
             }
@@ -277,7 +307,7 @@ fun ProfilePageHeader(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(190.dp)
+            .height(164.dp)
             .background(
                 Brush.verticalGradient(
                     colors = listOf(
@@ -292,7 +322,7 @@ fun ProfilePageHeader(
         Surface(
             modifier = Modifier
                 .align(Alignment.TopStart)
-                .padding(top = 16.dp)
+                .padding(top = 8.dp)
                 .size(42.dp),
             onClick = onBack,
             color = Color.White.copy(alpha = 0.16f),
@@ -302,16 +332,18 @@ fun ProfilePageHeader(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = "‹",
+                    text = "<",
                     color = Color.White,
-                    fontSize = 34.sp,
+                    fontSize = 28.sp,
                     fontWeight = FontWeight.Bold
                 )
             }
         }
 
         Column(
-            modifier = Modifier.align(Alignment.CenterStart)
+            modifier = Modifier
+                .align(Alignment.CenterStart)
+                .offset(y = (-22).dp)
         ) {
             Text(
                 text = title,
@@ -333,7 +365,7 @@ fun ProfilePageHeader(
         Box(
             modifier = Modifier
                 .align(Alignment.TopEnd)
-                .padding(top = 22.dp)
+                .padding(top = 12.dp)
                 .size(44.dp)
                 .background(
                     color = Color.White.copy(alpha = 0.16f),
@@ -343,7 +375,9 @@ fun ProfilePageHeader(
         ) {
             Text(
                 text = emoji,
-                fontSize = 22.sp
+                fontSize = 13.sp,
+                color = Color.White,
+                fontWeight = FontWeight.Bold
             )
         }
     }

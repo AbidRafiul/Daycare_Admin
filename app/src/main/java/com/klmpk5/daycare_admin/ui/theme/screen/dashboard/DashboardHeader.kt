@@ -24,7 +24,7 @@ fun DashboardHeader() {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(190.dp)
+            .height(164.dp)
             .background(
                 Brush.verticalGradient(
                     colors = listOf(
@@ -62,7 +62,7 @@ fun DashboardHeader() {
             modifier = Modifier
                 .fillMaxWidth()
                 .align(Alignment.TopCenter)
-                .padding(top = 24.dp),
+                .padding(top = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(

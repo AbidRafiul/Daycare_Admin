@@ -1,6 +1,7 @@
 package com.klmpk5.daycare_admin.ui.theme.navigation
 
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -42,6 +43,7 @@ fun AppNavigation(
     val showBottomBar = currentRoute != null && currentRoute != "login"
 
     Scaffold(
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         bottomBar = {
             if (showBottomBar) {
                 DashboardBottomNavigation(navController = navController)
@@ -65,7 +67,13 @@ fun AppNavigation(
             }
 
             composable("dashboard") {
-                DashboardScreen(navController = navController)
+                DashboardScreen(
+                    navController = navController,
+                    adminChildViewModel = adminChildViewModel,
+                    attendanceViewModel = attendanceViewModel,
+                    weeklyPlanViewModel = weeklyPlanViewModel,
+                    scoreViewModel = scoreViewModel
+                )
             }
 
             composable("classroom") {
@@ -106,6 +114,7 @@ fun AppNavigation(
 
             composable("profile") {
                 ProfileScreen(
+                    profileViewModel = profileViewModel,
                     onEditProfileClick = {
                         navController.navigate("profile/edit")
                     },
@@ -114,8 +123,12 @@ fun AppNavigation(
                     },
                     onLogoutClick = {
                         FirebaseAuth.getInstance().signOut()
+                        loginViewModel.resetState()
                         navController.navigate("login") {
-                            popUpTo(0) { inclusive = true }
+                            popUpTo(navController.graph.id) {
+                                inclusive = true
+                            }
+                            launchSingleTop = true
                         }
                     }
                 )
@@ -123,6 +136,7 @@ fun AppNavigation(
 
             composable("profile/edit") {
                 EditProfileScreen(
+                    profileViewModel = profileViewModel,
                     onBack = {
                         navController.popBackStack()
                     }

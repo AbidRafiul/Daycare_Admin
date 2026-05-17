@@ -57,6 +57,7 @@ fun ChangePasswordScreen(
     }
 
     Scaffold(
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         containerColor = DaycareBackground
     ) { innerPadding ->
 
@@ -69,7 +70,7 @@ fun ChangePasswordScreen(
             ProfilePageHeader(
                 title = "Ubah Password",
                 subtitle = "Kelola keamanan akun admin/guru",
-                emoji = "🔐",
+                emoji = "Key",
                 onBack = onBack
             )
 

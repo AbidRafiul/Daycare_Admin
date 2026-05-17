@@ -10,6 +10,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -21,7 +23,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.google.firebase.auth.FirebaseAuth
 import com.klmpk5.daycare_admin.ui.theme.DaycareBackground
 import com.klmpk5.daycare_admin.ui.theme.DaycareBorder
 import com.klmpk5.daycare_admin.ui.theme.DaycarePrimary
@@ -29,6 +30,7 @@ import com.klmpk5.daycare_admin.ui.theme.DaycarePrimaryLight
 import com.klmpk5.daycare_admin.ui.theme.DaycareTextMuted
 import com.klmpk5.daycare_admin.ui.theme.DaycareTextPrimary
 import com.klmpk5.daycare_admin.ui.theme.DaycareTextSecondary
+import com.klmpk5.daycare_admin.viewmodel.ProfileViewModel
 
 /**
  * ProfileScreen adalah halaman profile admin/guru.
@@ -41,13 +43,17 @@ import com.klmpk5.daycare_admin.ui.theme.DaycareTextSecondary
  */
 @Composable
 fun ProfileScreen(
+    profileViewModel: ProfileViewModel,
     onEditProfileClick: () -> Unit,
     onChangePasswordClick: () -> Unit,
     onLogoutClick: () -> Unit
 ) {
-    val currentUser = FirebaseAuth.getInstance().currentUser
-    val email = currentUser?.email ?: "admin@daycare.com"
+    val profileState by profileViewModel.profileState.collectAsState()
     var showLogoutDialog by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        profileViewModel.loadProfile()
+    }
 
     if (showLogoutDialog) {
         AlertDialog(
@@ -100,6 +106,7 @@ fun ProfileScreen(
     }
 
     Scaffold(
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         containerColor = DaycareBackground
     ) { innerPadding ->
 
@@ -116,9 +123,10 @@ fun ProfileScreen(
             )
 
             ProfileInfoCard(
-                name = "Admin Daycare",
-                role = "Admin / Guru",
-                email = email,
+                name = profileState.fullName,
+                role = profileState.role,
+                email = profileState.email.ifBlank { "admin@daycare.com" },
+                description = profileState.description,
                 modifier = Modifier
                     .padding(horizontal = 20.dp)
                     .offset(y = (-36).dp)
@@ -151,7 +159,7 @@ fun ProfileHeader(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(210.dp)
+            .height(176.dp)
             .background(
                 Brush.verticalGradient(
                     colors = listOf(
@@ -175,7 +183,9 @@ fun ProfileHeader(
         )
 
         Column(
-            modifier = Modifier.align(Alignment.CenterStart)
+            modifier = Modifier
+                .align(Alignment.CenterStart)
+                .offset(y = (-22).dp)
         ) {
             Text(
                 text = "Profile Admin",
@@ -197,7 +207,7 @@ fun ProfileHeader(
         Box(
             modifier = Modifier
                 .align(Alignment.TopEnd)
-                .padding(top = 22.dp)
+                .padding(top = 12.dp)
                 .size(44.dp)
                 .clickable(onClick = onLogoutClick)
                 .background(
@@ -221,6 +231,7 @@ fun ProfileInfoCard(
     name: String,
     role: String,
     email: String,
+    description: String,
     modifier: Modifier = Modifier
 ) {
     Card(
@@ -283,6 +294,17 @@ fun ProfileInfoCard(
                         color = DaycareTextSecondary
                     )
                 }
+            }
+
+            if (description.isNotBlank()) {
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Text(
+                    text = description,
+                    fontSize = 13.sp,
+                    color = DaycareTextSecondary,
+                    lineHeight = 19.sp
+                )
             }
 
             Spacer(modifier = Modifier.height(18.dp))

@@ -20,6 +20,10 @@ class ScoreRepository(
         return scoreDao.getScoresByChildId(childId)
     }
 
+    fun getScoresByDateLocal(date: String): Flow<List<DailyScore>> {
+        return scoreDao.getScoresByDate(date)
+    }
+
     // 2. Sinkronisasi nilai harian dari Firebase ke Room
     suspend fun syncScoresFromRemote(childId: String) {
         withContext(Dispatchers.IO) {
@@ -39,21 +43,21 @@ class ScoreRepository(
     }
 
     // 3. Menambahkan nilai harian baru (Khusus Admin/Guru)
-    suspend fun addScore(scoreEntity: DailyScore, imageUri: Uri? = null) {
-        withContext(Dispatchers.IO) {
-            try {
-                val uploadedImageUrl = imageUri?.let { uri ->
-                    cloudinaryService.uploadImage(uri)
+    suspend fun addScore(scoreEntity: DailyScore, imageUri: Uri? = null): Result<DailyScore> {
+        return withContext(Dispatchers.IO) {
+            runCatching {
+                val uploadedImageUrl = if (imageUri == null) {
+                    scoreEntity.imageUrl
+                } else {
+                    cloudinaryService.uploadImage(imageUri)
+                        ?: throw IllegalStateException("Upload foto ke Cloudinary gagal")
                 }
 
-                val scoreWithImage = scoreEntity.copy(
-                    imageUrl = uploadedImageUrl ?: scoreEntity.imageUrl
-                )
+                val scoreWithImage = scoreEntity.copy(imageUrl = uploadedImageUrl)
 
-                // Simpan ke Room
+                // Simpan lokal dulu supaya data tetap masuk saat Firestore sedang offline.
                 scoreDao.insertScore(scoreWithImage)
 
-                // Konversi ke DTO
                 val remoteDto = DailyScoreRemoteDto(
                     scoreId = scoreWithImage.scoreId,
                     childId = scoreWithImage.childId,
@@ -64,10 +68,15 @@ class ScoreRepository(
                     imageUrl = scoreWithImage.imageUrl
                 )
 
-                // Lempar ke Firebase
-                firebaseService.addScore(remoteDto)
-            } catch (e: Exception) {
-                e.printStackTrace()
+                runCatching {
+                    firebaseService.addScore(remoteDto)
+                }.onFailure { error ->
+                    error.printStackTrace()
+                }
+
+                scoreWithImage
+            }.onFailure { error ->
+                error.printStackTrace()
             }
         }
     }
