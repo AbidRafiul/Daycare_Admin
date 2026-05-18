@@ -1,12 +1,18 @@
 package com.klmpk5.daycare_admin.data.remote.firebase
 
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.Query
 import com.google.firebase.firestore.SetOptions
 import com.klmpk5.daycare_admin.data.remote.model.AttendanceRemoteDto
 import com.klmpk5.daycare_admin.data.remote.model.ChildRemoteDto
 import com.klmpk5.daycare_admin.data.remote.model.DailyScoreRemoteDto
 import com.klmpk5.daycare_admin.data.remote.model.UserRemoteDto
 import com.klmpk5.daycare_admin.data.remote.model.WeeklyPlanRemoteDto
+// FITUR BARU: Import untuk Chat
+import com.klmpk5.daycare_admin.data.remote.model.ChatMessageRemoteDto
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
 
 class FirebaseService {
@@ -33,7 +39,6 @@ class FirebaseService {
     // ==========================================
     // 1. CHILD OPERATIONS (ADMIN ACCESS)
     // ==========================================
-
 
     // Admin menarik SEMUA data anak
     suspend fun getAllChildren(): List<ChildRemoteDto> {
@@ -97,9 +102,6 @@ class FirebaseService {
             .await()
     }
 
-
-
-
     // ==========================================
     // 2. WEEKLY PLAN OPERATIONS (ADMIN ACCESS)
     // ==========================================
@@ -158,8 +160,8 @@ class FirebaseService {
     }
 
     // ==========================================
-// 4. USER OPERATIONS (AUTH & ROLE)
-// ==========================================
+    // 4. USER OPERATIONS (AUTH & ROLE)
+    // ==========================================
 
     suspend fun getUserRole(uid: String): String? {
         return try {
@@ -240,6 +242,35 @@ class FirebaseService {
                 ),
                 SetOptions.merge()
             )
+            .await()
+    }
+
+    // ==========================================
+    // 5. GLOBAL CHAT OPERATIONS (REAL-TIME)
+    // ==========================================
+
+    fun getGlobalChats(): Flow<List<ChatMessageRemoteDto>> = callbackFlow {
+        val listener = db.collection("global_chats")
+            .orderBy("timestamp", Query.Direction.ASCENDING)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    close(error)
+                    return@addSnapshotListener
+                }
+
+                if (snapshot != null) {
+                    val messages = snapshot.documents.mapNotNull { doc ->
+                        doc.toObject(ChatMessageRemoteDto::class.java)?.copy(id = doc.id)
+                    }
+                    trySend(messages)
+                }
+            }
+        awaitClose { listener.remove() }
+    }
+
+    suspend fun sendChatMessage(chatMessage: ChatMessageRemoteDto) {
+        db.collection("global_chats")
+            .add(chatMessage)
             .await()
     }
 }

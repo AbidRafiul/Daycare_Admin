@@ -5,12 +5,19 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.google.firebase.auth.FirebaseAuth
+import com.klmpk5.daycare_admin.data.remote.firebase.FirebaseService
+import com.klmpk5.daycare_admin.repository.ChatRepository
+import com.klmpk5.daycare_admin.viewmodel.ChatViewModel
+import com.klmpk5.daycare_admin.viewmodel.ChatViewModelFactory
+
 import com.klmpk5.daycare_admin.ui.screen.raport.HistoryRaportScreen
 import com.klmpk5.daycare_admin.ui.screen.raport.RaportScreen
 import com.klmpk5.daycare_admin.ui.screen.profile.ChangePasswordScreen
@@ -41,6 +48,11 @@ fun AppNavigation(
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
     val showBottomBar = currentRoute != null && currentRoute != "login"
+    val firebaseService = remember { FirebaseService() }
+    val chatRepository = remember { ChatRepository(firebaseService) }
+    val chatViewModel: ChatViewModel = viewModel(
+        factory = ChatViewModelFactory(chatRepository)
+    )
 
     Scaffold(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
@@ -109,7 +121,12 @@ fun AppNavigation(
             }
 
             composable("chat") {
-                ChatScreen()
+                ChatScreen(
+                    viewModel = chatViewModel,
+                    onBackClick = {
+                        navController.popBackStack()
+                    }
+                )
             }
 
             composable("profile") {
