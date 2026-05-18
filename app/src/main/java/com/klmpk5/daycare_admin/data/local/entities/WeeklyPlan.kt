@@ -8,5 +8,6 @@ data class WeeklyPlan(
     @PrimaryKey val planId: String,
     val startDate: String,
     val endDate: String,
-    val description: String
+    val description: String,
+    val imageUrl: String? = null
 )
