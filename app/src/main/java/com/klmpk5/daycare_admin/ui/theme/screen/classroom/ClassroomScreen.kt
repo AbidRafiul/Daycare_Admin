@@ -532,7 +532,6 @@ fun ClassroomMenuItem(
  * nickName
  * birthDate
  * gender
- * parentUserId
  * parentEmail
  * photoUrl
 
@@ -550,7 +549,6 @@ fun MasterDataChildForm(
     var nickName by remember { mutableStateOf("") }
     var birthDate by remember { mutableStateOf("") }
     var gender by remember { mutableStateOf("Laki-laki") }
-    var parentUserId by remember { mutableStateOf("") }
     var parentEmail by remember { mutableStateOf("") }
     var photoUrl by remember { mutableStateOf("") }
     var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
@@ -565,7 +563,6 @@ fun MasterDataChildForm(
             nickName = selectedChild.nickName ?: ""
             birthDate = selectedChild.birthDate
             gender = selectedChild.gender
-            parentUserId = selectedChild.parentUserId ?: ""
             parentEmail = selectedChild.parentEmail ?: ""
             photoUrl = selectedChild.photoUrl ?: ""
             selectedImageUri = null
@@ -577,7 +574,6 @@ fun MasterDataChildForm(
             nickName = ""
             birthDate = ""
             gender = "Laki-laki"
-            parentUserId = ""
             parentEmail = ""
             photoUrl = ""
             selectedImageUri = null
@@ -713,15 +709,6 @@ fun MasterDataChildForm(
             Spacer(modifier = Modifier.height(18.dp))
 
             ClassroomTextField(
-                value = parentUserId,
-                onValueChange = { parentUserId = it },
-                label = "Parent User ID",
-                placeholder = "Optional, isi jika sudah ada akun orang tua"
-            )
-
-            Spacer(modifier = Modifier.height(14.dp))
-
-            ClassroomTextField(
                 value = parentEmail,
                 onValueChange = { parentEmail = it },
                 label = "Email Orang Tua",
@@ -841,7 +828,6 @@ fun MasterDataChildForm(
                         nickName = nickName.ifBlank { null },
                         birthDate = birthDate.trim(),
                         gender = gender,
-                        parentUserId = parentUserId.ifBlank { null },
                         parentEmail = parentEmail.ifBlank { null },
                         photoUrl = photoUrl.ifBlank { null },
                         isActive = isActive,
@@ -871,7 +857,6 @@ fun MasterDataChildForm(
                     nickName = ""
                     birthDate = ""
                     gender = "Laki-laki"
-                    parentUserId = ""
                     parentEmail = ""
                     photoUrl = ""
                     selectedImageUri = null

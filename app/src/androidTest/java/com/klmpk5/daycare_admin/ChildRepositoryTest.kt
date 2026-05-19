@@ -7,7 +7,7 @@ import com.google.firebase.FirebaseApp
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FirebaseFirestoreSettings
 import com.klmpk5.daycare_admin.data.local.db.DaycareDatabase
-import com.klmpk5.daycare_admin.data.local.entities.Child
+import com.klmpk5.daycare_admin.data.remote.CloudinaryService
 import com.klmpk5.daycare_admin.data.remote.firebase.FirebaseService
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -38,7 +38,7 @@ class ChildRepositoryTest {
 
         database = Room.inMemoryDatabaseBuilder(context, DaycareDatabase::class.java).build()
         firebaseService = FirebaseService()
-        repository = ChildRepository(database.childDao(), firebaseService)
+        repository = ChildRepository(database.childDao(), firebaseService, CloudinaryService())
     }
 
     @After
@@ -52,10 +52,10 @@ class ChildRepositoryTest {
             withContext(Dispatchers.IO) {
                 // 1. Admin menyiapkan data dummy dengan parent yang BERBEDA-BEDA
                 val child1 = com.klmpk5.daycare_admin.data.remote.model.ChildRemoteDto(
-                    childId = "ADMIN_TEST_01", fullName = "Anak A", parentUserId = "PARENT_X"
+                    childId = "ADMIN_TEST_01", fullName = "Anak A", parentEmail = "parent-x@email.com"
                 )
                 val child2 = com.klmpk5.daycare_admin.data.remote.model.ChildRemoteDto(
-                    childId = "ADMIN_TEST_02", fullName = "Anak B", parentUserId = "PARENT_Y"
+                    childId = "ADMIN_TEST_02", fullName = "Anak B", parentEmail = "parent-y@email.com"
                 )
 
                 firebaseService.addChild(child1)

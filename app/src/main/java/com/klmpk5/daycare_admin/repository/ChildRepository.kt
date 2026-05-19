@@ -33,7 +33,6 @@ class ChildRepository(
                         nickName = dto.nickName,
                         birthDate = dto.birthDate,
                         gender = dto.gender,
-                        parentUserId = dto.parentUserId,
                         parentEmail = dto.parentEmail,
                         photoUrl = dto.photoUrl,
                         isActive = dto.isActive,
@@ -70,8 +69,8 @@ class ChildRepository(
                 val updatedChild = childEntity.copy(
                     parentEmail = childEntity.parentEmail
                         ?.trim()
-                        ?.lowercase(),
-                    parentUserId = null,
+                        ?.lowercase()
+                        ?.ifBlank { null },
                     photoUrl = finalPhotoUrl,
                     updatedAt = now
                 )
@@ -111,7 +110,8 @@ class ChildRepository(
                 val updatedChild = childEntity.copy(
                     parentEmail = childEntity.parentEmail
                         ?.trim()
-                        ?.lowercase(),
+                        ?.lowercase()
+                        ?.ifBlank { null },
                     photoUrl = finalPhotoUrl,
                     updatedAt = now
                 )
@@ -162,7 +162,6 @@ class ChildRepository(
             nickName = nickName,
             birthDate = birthDate,
             gender = gender,
-            parentUserId = parentUserId,
             parentEmail = parentEmail,
             photoUrl = photoUrl,
             isActive = isActive,
