@@ -13,7 +13,6 @@ data class Child(
     val nickName: String? = null,
     val birthDate: String,
     val gender: String,
-    val parentUserId: String? = null,
     val parentEmail: String? = null,
     val photoUrl: String? = null,
     val isActive: Boolean = true,

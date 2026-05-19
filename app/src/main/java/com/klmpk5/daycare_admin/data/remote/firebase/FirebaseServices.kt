@@ -61,18 +61,31 @@ class FirebaseService {
             db.collection("children").document(child.childId)
         }
 
-        child.childId = docRef.id
+        val childWithParentEmail = child.copy(
+            childId = docRef.id,
+            parentEmail = child.parentEmail
+                ?.trim()
+                ?.lowercase()
+                ?.ifBlank { null }
+        )
 
-        docRef.set(child).await()
+        docRef.set(childWithParentEmail).await()
     }
 
     // Update Anak (Admin Only)
     suspend fun updateChild(child: ChildRemoteDto) {
         if (child.childId.isEmpty()) return
 
+        val childWithParentEmail = child.copy(
+            parentEmail = child.parentEmail
+                ?.trim()
+                ?.lowercase()
+                ?.ifBlank { null }
+        )
+
         db.collection("children")
             .document(child.childId)
-            .set(child)
+            .set(childWithParentEmail)
             .await()
     }
 

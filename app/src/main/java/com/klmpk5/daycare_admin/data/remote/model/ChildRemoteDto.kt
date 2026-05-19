@@ -9,7 +9,6 @@ data class ChildRemoteDto(
     var birthDate: String = "",
     var gender: String = "",
 
-    var parentUserId: String? = null,
     var parentEmail: String? = null,
 
     var photoUrl: String? = null,
