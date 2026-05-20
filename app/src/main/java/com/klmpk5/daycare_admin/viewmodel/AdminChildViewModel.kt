@@ -23,13 +23,13 @@ class AdminChildViewModel(
 
     fun addChild(child: Child, imageUri: Uri? = null) {
         viewModelScope.launch {
-            repository.addChild(child, imageUri)
+            repository.addChild(child.withNormalizedParentEmail(), imageUri)
         }
     }
 
     fun updateChild(child: Child, imageUri: Uri? = null) {
         viewModelScope.launch {
-            repository.updateChild(child, imageUri)
+            repository.updateChild(child.withNormalizedParentEmail(), imageUri)
         }
     }
 
@@ -37,6 +37,15 @@ class AdminChildViewModel(
         viewModelScope.launch {
             repository.softDeleteChild(child)
         }
+    }
+
+    private fun Child.withNormalizedParentEmail(): Child {
+        return copy(
+            parentEmail = parentEmail
+                ?.trim()
+                ?.lowercase()
+                ?.ifBlank { null }
+        )
     }
 }
 

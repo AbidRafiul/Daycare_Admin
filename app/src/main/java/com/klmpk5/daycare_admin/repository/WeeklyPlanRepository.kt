@@ -47,8 +47,7 @@ class WeeklyPlanRepository(
                     planId = planEntity.planId,
                     startDate = planEntity.startDate,
                     endDate = planEntity.endDate,
-                    description = planEntity.description,
-                    imageUrl = planEntity.imageUrl
+                    description = planEntity.description
                 )
 
                 // Lempar ke Firebase

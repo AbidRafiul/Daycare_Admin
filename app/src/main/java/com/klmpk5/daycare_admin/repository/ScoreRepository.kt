@@ -1,7 +1,9 @@
 package com.klmpk5.daycare_admin.repository
 
+import android.net.Uri
 import com.klmpk5.daycare_admin.data.local.dao.ScoreDao
 import com.klmpk5.daycare_admin.data.local.entities.DailyScore
+import com.klmpk5.daycare_admin.data.remote.CloudinaryService
 import com.klmpk5.daycare_admin.data.remote.firebase.FirebaseService
 import com.klmpk5.daycare_admin.data.remote.model.DailyScoreRemoteDto
 import kotlinx.coroutines.Dispatchers
@@ -10,11 +12,16 @@ import kotlinx.coroutines.withContext
 
 class ScoreRepository(
     private val scoreDao: ScoreDao,
-    private val firebaseService: FirebaseService
+    private val firebaseService: FirebaseService,
+    private val cloudinaryService: CloudinaryService
 ) {
     // 1. Membaca nilai harian berdasarkan ID anak dari database lokal
     fun getScoresByChildLocal(childId: String): Flow<List<DailyScore>> {
         return scoreDao.getScoresByChildId(childId)
+    }
+
+    fun getScoresByDateLocal(date: String): Flow<List<DailyScore>> {
+        return scoreDao.getScoresByDate(date)
     }
 
     // 2. Sinkronisasi nilai harian dari Firebase ke Room
@@ -36,26 +43,40 @@ class ScoreRepository(
     }
 
     // 3. Menambahkan nilai harian baru (Khusus Admin/Guru)
-    suspend fun addScore(scoreEntity: DailyScore) {
-        withContext(Dispatchers.IO) {
-            try {
-                // Simpan ke Room
-                scoreDao.insertScore(scoreEntity)
+    suspend fun addScore(scoreEntity: DailyScore, imageUri: Uri? = null): Result<DailyScore> {
+        return withContext(Dispatchers.IO) {
+            runCatching {
+                val uploadedImageUrl = if (imageUri == null) {
+                    scoreEntity.imageUrl
+                } else {
+                    cloudinaryService.uploadImage(imageUri)
+                        ?: throw IllegalStateException("Upload foto ke Cloudinary gagal")
+                }
 
-                // Konversi ke DTO
+                val scoreWithImage = scoreEntity.copy(imageUrl = uploadedImageUrl)
+
+                // Simpan lokal dulu supaya data tetap masuk saat Firestore sedang offline.
+                scoreDao.insertScore(scoreWithImage)
+
                 val remoteDto = DailyScoreRemoteDto(
-                    scoreId = scoreEntity.scoreId,
-                    childId = scoreEntity.childId,
-                    date = scoreEntity.date,
-                    activityName = scoreEntity.activityName,
-                    score = scoreEntity.score,
-                    notes = scoreEntity.notes
+                    scoreId = scoreWithImage.scoreId,
+                    childId = scoreWithImage.childId,
+                    date = scoreWithImage.date,
+                    activityName = scoreWithImage.activityName,
+                    score = scoreWithImage.score,
+                    notes = scoreWithImage.notes,
+                    imageUrl = scoreWithImage.imageUrl
                 )
 
-                // Lempar ke Firebase
-                firebaseService.addScore(remoteDto)
-            } catch (e: Exception) {
-                e.printStackTrace()
+                runCatching {
+                    firebaseService.addScore(remoteDto)
+                }.onFailure { error ->
+                    error.printStackTrace()
+                }
+
+                scoreWithImage
+            }.onFailure { error ->
+                error.printStackTrace()
             }
         }
     }

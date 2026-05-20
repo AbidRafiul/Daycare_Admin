@@ -9,6 +9,9 @@ interface ScoreDao {
     @Query("SELECT * FROM daily_score_table WHERE childId = :childId ORDER BY date DESC")
     fun getScoresByChildId(childId: String): Flow<List<DailyScore>>
 
+    @Query("SELECT * FROM daily_score_table WHERE date = :date")
+    fun getScoresByDate(date: String): Flow<List<DailyScore>>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertScore(score: DailyScore): Long
 

@@ -10,6 +10,7 @@ import com.klmpk5.daycare_admin.data.remote.firebase.FirebaseService
 import com.klmpk5.daycare_admin.repository.AttendanceRepository
 import com.klmpk5.daycare_admin.repository.ChildRepository
 import com.klmpk5.daycare_admin.repository.ScoreRepository
+import com.klmpk5.daycare_admin.repository.UserRepository
 import com.klmpk5.daycare_admin.repository.WeeklyPlanRepository
 
 class App : Application() {
@@ -38,7 +39,11 @@ class App : Application() {
     }
 
     val scoreRepository by lazy {
-        ScoreRepository(database.scoreDao(), firebaseService)
+        ScoreRepository(database.scoreDao(), firebaseService, cloudinaryService)
+    }
+
+    val userRepository by lazy {
+        UserRepository(database.userDao(), firebaseService)
     }
 
     override fun onCreate() {

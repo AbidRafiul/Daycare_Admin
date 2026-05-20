@@ -79,8 +79,12 @@ dependencies {
     //Firebase Authentication
     implementation("com.google.firebase:firebase-auth-ktx:22.3.1")
 
+    // Google Sign-In
+    implementation("com.google.android.gms:play-services-auth:21.2.0")
+
     //Cloudinary
     implementation("com.cloudinary:cloudinary-android:2.5.0")
+    implementation("io.coil-kt:coil-compose:2.7.0")
 
     // Testing
     testImplementation(libs.junit)

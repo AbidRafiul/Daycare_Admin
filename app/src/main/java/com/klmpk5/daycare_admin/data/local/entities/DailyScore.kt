@@ -9,6 +9,7 @@ data class DailyScore(
     val childId: String,
     val date: String,
     val activityName: String,
-    val score: String,
-    val notes: String
+    val score: Int,
+    val notes: String?,
+    val imageUrl: String? = null
 )

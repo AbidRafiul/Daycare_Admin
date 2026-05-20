@@ -6,14 +6,21 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.klmpk5.daycare_admin.data.remote.firebase.FirebaseService
-import com.klmpk5.daycare_admin.ui.theme.Daycare_AdminTheme
 import com.klmpk5.daycare_admin.ui.theme.navigation.AppNavigation
 import com.klmpk5.daycare_admin.viewmodel.AdminChildViewModel
 import com.klmpk5.daycare_admin.viewmodel.AdminChildViewModelFactory
+import com.klmpk5.daycare_admin.viewmodel.AdminManagementViewModel
+import com.klmpk5.daycare_admin.viewmodel.AdminManagementViewModelFactory
+import com.klmpk5.daycare_admin.viewmodel.AdminScoreViewModel
+import com.klmpk5.daycare_admin.viewmodel.AdminScoreViewModelFactory
+import com.klmpk5.daycare_admin.viewmodel.AdminWeeklyPlanViewModel
+import com.klmpk5.daycare_admin.viewmodel.AdminWeeklyPlanViewModelFactory
 import com.klmpk5.daycare_admin.viewmodel.AttendanceViewModel
 import com.klmpk5.daycare_admin.viewmodel.AttendanceViewModelFactory
 import com.klmpk5.daycare_admin.viewmodel.LoginViewModel
 import com.klmpk5.daycare_admin.viewmodel.LoginViewModelFactory
+import com.klmpk5.daycare_admin.viewmodel.ProfileViewModel
+import com.klmpk5.daycare_admin.viewmodel.ProfileViewModelFactory
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -22,37 +29,46 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
 
         setContent {
-            Daycare_AdminTheme {
+            val app = application as App
+            val firebaseService = FirebaseService()
 
-                // Mengambil instance Application agar bisa akses repository yang sudah dibuat di App.kt
-                val app = application as App
+            val loginViewModel: LoginViewModel = viewModel(
+                factory = LoginViewModelFactory(firebaseService)
+            )
 
-                // FirebaseService untuk LoginViewModel
-                val firebaseService = FirebaseService()
+            val adminChildViewModel: AdminChildViewModel = viewModel(
+                factory = AdminChildViewModelFactory(app.childRepository)
+            )
 
-                // ViewModel untuk login admin/guru
-                val loginViewModel: LoginViewModel = viewModel(
-                    factory = LoginViewModelFactory(firebaseService)
-                )
+            val attendanceViewModel: AttendanceViewModel = viewModel(
+                factory = AttendanceViewModelFactory(app.attendanceRepository)
+            )
 
-                // ViewModel untuk master data anak
-                val adminChildViewModel: AdminChildViewModel = viewModel(
-                    factory = AdminChildViewModelFactory(app.childRepository)
-                )
+            val weeklyPlanViewModel: AdminWeeklyPlanViewModel = viewModel(
+                factory = AdminWeeklyPlanViewModelFactory(app.weeklyPlanRepository)
+            )
 
-                //Panggil ViewModel untuk presensi
-                val attendanceViewModel: AttendanceViewModel = viewModel(
-                    factory = AttendanceViewModelFactory(app.attendanceRepository)
-                )
+            val scoreViewModel: AdminScoreViewModel = viewModel(
+                factory = AdminScoreViewModelFactory(app.scoreRepository)
+            )
 
-                // Navigasi utama aplikasi
-                AppNavigation(
-                    loginViewModel = loginViewModel,
-                    adminChildViewModel = adminChildViewModel,
-                    attendanceViewModel = attendanceViewModel
+            val profileViewModel: ProfileViewModel = viewModel(
+                factory = ProfileViewModelFactory(app.userRepository)
+            )
 
-                )
-            }
+            val adminManagementViewModel: AdminManagementViewModel = viewModel(
+                factory = AdminManagementViewModelFactory(firebaseService, this@MainActivity)
+            )
+
+            AppNavigation(
+                loginViewModel = loginViewModel,
+                adminChildViewModel = adminChildViewModel,
+                attendanceViewModel = attendanceViewModel,
+                weeklyPlanViewModel = weeklyPlanViewModel,
+                scoreViewModel = scoreViewModel,
+                profileViewModel = profileViewModel,
+                adminManagementViewModel = adminManagementViewModel
+            )
         }
     }
 }
