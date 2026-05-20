@@ -8,6 +8,14 @@ data class UserRemoteDto(
     val role: String = "",
     val fullName: String = "",
     val description: String = "",
+    val isActive: Boolean = true,
+    val status: String = "active",
+    val createdAt: Long = System.currentTimeMillis(),
+    val createdByEmail: String = "",
+    val disabledAt: Long? = null,
+    val disabledByEmail: String = "",
+    val reactivatedAt: Long? = null,
+    val reactivatedByEmail: String = "",
     val updatedAt: Long = System.currentTimeMillis()
 ) {
     fun toEntity(isSynced: Boolean = true): User {
@@ -17,6 +25,14 @@ data class UserRemoteDto(
             role = role,
             fullName = fullName,
             description = description,
+            isActive = isActive,
+            status = status,
+            createdAt = createdAt,
+            createdByEmail = createdByEmail,
+            disabledAt = disabledAt,
+            disabledByEmail = disabledByEmail,
+            reactivatedAt = reactivatedAt,
+            reactivatedByEmail = reactivatedByEmail,
             updatedAt = updatedAt,
             isSynced = isSynced
         )

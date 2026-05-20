@@ -9,6 +9,8 @@ import com.klmpk5.daycare_admin.data.remote.firebase.FirebaseService
 import com.klmpk5.daycare_admin.ui.theme.navigation.AppNavigation
 import com.klmpk5.daycare_admin.viewmodel.AdminChildViewModel
 import com.klmpk5.daycare_admin.viewmodel.AdminChildViewModelFactory
+import com.klmpk5.daycare_admin.viewmodel.AdminManagementViewModel
+import com.klmpk5.daycare_admin.viewmodel.AdminManagementViewModelFactory
 import com.klmpk5.daycare_admin.viewmodel.AdminScoreViewModel
 import com.klmpk5.daycare_admin.viewmodel.AdminScoreViewModelFactory
 import com.klmpk5.daycare_admin.viewmodel.AdminWeeklyPlanViewModel
@@ -54,13 +56,18 @@ class MainActivity : ComponentActivity() {
                 factory = ProfileViewModelFactory(app.userRepository)
             )
 
+            val adminManagementViewModel: AdminManagementViewModel = viewModel(
+                factory = AdminManagementViewModelFactory(firebaseService, this@MainActivity)
+            )
+
             AppNavigation(
                 loginViewModel = loginViewModel,
                 adminChildViewModel = adminChildViewModel,
                 attendanceViewModel = attendanceViewModel,
                 weeklyPlanViewModel = weeklyPlanViewModel,
                 scoreViewModel = scoreViewModel,
-                profileViewModel = profileViewModel
+                profileViewModel = profileViewModel,
+                adminManagementViewModel = adminManagementViewModel
             )
         }
     }

@@ -10,6 +10,14 @@ data class User(
     val role: String = "admin",
     val fullName: String = "",
     val description: String = "",
+    val isActive: Boolean = true,
+    val status: String = "active",
+    val createdAt: Long = System.currentTimeMillis(),
+    val createdByEmail: String = "",
+    val disabledAt: Long? = null,
+    val disabledByEmail: String = "",
+    val reactivatedAt: Long? = null,
+    val reactivatedByEmail: String = "",
     val updatedAt: Long = System.currentTimeMillis(),
     val isSynced: Boolean = true
 )
