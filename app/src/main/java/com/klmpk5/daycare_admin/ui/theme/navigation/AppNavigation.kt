@@ -20,6 +20,7 @@ import com.klmpk5.daycare_admin.viewmodel.ChatViewModelFactory
 
 import com.klmpk5.daycare_admin.ui.screen.raport.HistoryRaportScreen
 import com.klmpk5.daycare_admin.ui.screen.raport.RaportScreen
+import com.klmpk5.daycare_admin.ui.screen.profile.AdminManagementPage
 import com.klmpk5.daycare_admin.ui.screen.profile.ChangePasswordScreen
 import com.klmpk5.daycare_admin.ui.screen.profile.EditProfileScreen
 import com.klmpk5.daycare_admin.ui.screen.profile.ProfileScreen
@@ -29,6 +30,7 @@ import com.klmpk5.daycare_admin.ui.theme.screen.dashboard.DashboardBottomNavigat
 import com.klmpk5.daycare_admin.ui.theme.screen.dashboard.DashboardScreen
 import com.klmpk5.daycare_admin.ui.theme.screen.chat.ChatScreen
 import com.klmpk5.daycare_admin.viewmodel.AdminChildViewModel
+import com.klmpk5.daycare_admin.viewmodel.AdminManagementViewModel
 import com.klmpk5.daycare_admin.viewmodel.AdminScoreViewModel
 import com.klmpk5.daycare_admin.viewmodel.AdminWeeklyPlanViewModel
 import com.klmpk5.daycare_admin.viewmodel.AttendanceViewModel
@@ -42,7 +44,8 @@ fun AppNavigation(
     attendanceViewModel: AttendanceViewModel,
     weeklyPlanViewModel: AdminWeeklyPlanViewModel,
     scoreViewModel: AdminScoreViewModel,
-    profileViewModel: ProfileViewModel
+    profileViewModel: ProfileViewModel,
+    adminManagementViewModel: AdminManagementViewModel
 ) {
     val navController = rememberNavController()
     val backStackEntry by navController.currentBackStackEntryAsState()
@@ -138,6 +141,9 @@ fun AppNavigation(
                     onChangePasswordClick = {
                         navController.navigate("profile/password")
                     },
+                    onAdminManagementClick = {
+                        navController.navigate("profile/admin")
+                    },
                     onLogoutClick = {
                         FirebaseAuth.getInstance().signOut()
                         loginViewModel.resetState()
@@ -163,6 +169,15 @@ fun AppNavigation(
             composable("profile/password") {
                 ChangePasswordScreen(
                     profileViewModel = profileViewModel,
+                    onBack = {
+                        navController.popBackStack()
+                    }
+                )
+            }
+
+            composable("profile/admin") {
+                AdminManagementPage(
+                    adminManagementViewModel = adminManagementViewModel,
                     onBack = {
                         navController.popBackStack()
                     }

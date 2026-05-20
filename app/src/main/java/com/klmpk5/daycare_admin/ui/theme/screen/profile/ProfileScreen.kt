@@ -46,6 +46,7 @@ fun ProfileScreen(
     profileViewModel: ProfileViewModel,
     onEditProfileClick: () -> Unit,
     onChangePasswordClick: () -> Unit,
+    onAdminManagementClick: () -> Unit,
     onLogoutClick: () -> Unit
 ) {
     val profileState by profileViewModel.profileState.collectAsState()
@@ -135,6 +136,7 @@ fun ProfileScreen(
             ProfileMenuCard(
                 onEditProfileClick = onEditProfileClick,
                 onChangePasswordClick = onChangePasswordClick,
+                onAdminManagementClick = onAdminManagementClick,
                 modifier = Modifier
                     .padding(horizontal = 20.dp)
                     .offset(y = (-20).dp)
@@ -352,6 +354,7 @@ fun ProfileInfoCard(
 fun ProfileMenuCard(
     onEditProfileClick: () -> Unit,
     onChangePasswordClick: () -> Unit,
+    onAdminManagementClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Card(
@@ -392,6 +395,18 @@ fun ProfileMenuCard(
                 title = "Ubah Password",
                 subtitle = "Ganti password akun Anda",
                 onClick = onChangePasswordClick
+            )
+
+            HorizontalDivider(
+                modifier = Modifier.padding(horizontal = 20.dp),
+                color = DaycareBorder.copy(alpha = 0.45f)
+            )
+
+            ProfileMenuItem(
+                emoji = "👥",
+                title = "Master Admin",
+                subtitle = "Tambah dan nonaktifkan akun admin",
+                onClick = onAdminManagementClick
             )
         }
     }

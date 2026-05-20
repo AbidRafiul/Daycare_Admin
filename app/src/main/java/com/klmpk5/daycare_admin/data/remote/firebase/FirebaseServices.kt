@@ -3,6 +3,7 @@ package com.klmpk5.daycare_admin.data.remote.firebase
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
 import com.google.firebase.firestore.SetOptions
+import com.google.firebase.firestore.Source
 import com.klmpk5.daycare_admin.data.remote.model.AttendanceRemoteDto
 import com.klmpk5.daycare_admin.data.remote.model.ChildRemoteDto
 import com.klmpk5.daycare_admin.data.remote.model.DailyScoreRemoteDto
@@ -191,16 +192,24 @@ class FirebaseService {
         }
     }
 
-    suspend fun getUserProfile(uid: String): UserRemoteDto? {
+    suspend fun getUserProfile(uid: String, forceServer: Boolean = false): UserRemoteDto? {
         return try {
             val doc = db.collection("users")
                 .document(uid)
-                .get()
+                .get(if (forceServer) Source.SERVER else Source.DEFAULT)
                 .await()
 
             val user = doc.toObject(UserRemoteDto::class.java)
             user?.uid = doc.id
-            user
+            val rawStatus = doc.getString("status").orEmpty()
+            val activeField = doc.getBoolean("active")
+            val isActiveField = doc.getBoolean("isActive")
+            user?.copy(
+                isActive = isActiveField ?: activeField ?: user.isActive,
+                status = rawStatus.ifBlank {
+                    if (isActiveField == false || activeField == false) "inactive" else user.status
+                }
+            )
         } catch (e: Exception) {
             null
         }
@@ -212,21 +221,39 @@ class FirebaseService {
         role: String,
         fullName: String = "",
         description: String = "",
+        isActive: Boolean = true,
+        status: String = "active",
+        createdAt: Long = System.currentTimeMillis(),
+        createdByEmail: String = "",
+        disabledAt: Long? = null,
+        disabledByEmail: String = "",
+        reactivatedAt: Long? = null,
+        reactivatedByEmail: String = "",
         updatedAt: Long = System.currentTimeMillis()
     ) {
         try {
-            val userDto = UserRemoteDto(
-                uid = uid,
-                email = email,
-                role = role,
-                fullName = fullName,
-                description = description,
-                updatedAt = updatedAt
-            )
-
             db.collection("users")
                 .document(uid)
-                .set(userDto, SetOptions.merge())
+                .set(
+                    mapOf(
+                        "uid" to uid,
+                        "email" to email,
+                        "role" to role,
+                        "fullName" to fullName,
+                        "description" to description,
+                        "active" to isActive,
+                        "isActive" to isActive,
+                        "status" to status,
+                        "createdAt" to createdAt,
+                        "createdByEmail" to createdByEmail,
+                        "disabledAt" to disabledAt,
+                        "disabledByEmail" to disabledByEmail,
+                        "reactivatedAt" to reactivatedAt,
+                        "reactivatedByEmail" to reactivatedByEmail,
+                        "updatedAt" to updatedAt
+                    ),
+                    SetOptions.merge()
+                )
                 .await()
 
         } catch (e: Exception) {
@@ -251,7 +278,71 @@ class FirebaseService {
                     "email" to email,
                     "role" to role,
                     "description" to description,
+                    "isActive" to true,
+                    "active" to true,
+                    "status" to "active",
                     "updatedAt" to updatedAt
+                ),
+                SetOptions.merge()
+            )
+            .await()
+    }
+
+    suspend fun getAllAdmins(): List<UserRemoteDto> {
+        val snapshot = db.collection("users")
+            .whereEqualTo("role", "admin")
+            .get()
+            .await()
+
+        return snapshot.documents.mapNotNull { doc ->
+            val user = doc.toObject(UserRemoteDto::class.java)
+            user?.uid = doc.id
+            val rawStatus = doc.getString("status").orEmpty()
+            val activeField = doc.getBoolean("active")
+            val isActiveField = doc.getBoolean("isActive")
+            user?.copy(
+                isActive = isActiveField ?: activeField ?: user.isActive,
+                status = rawStatus.ifBlank {
+                    if (isActiveField == false || activeField == false) "inactive" else user.status
+                }
+            )
+        }.sortedBy { it.email.lowercase() }
+    }
+
+    suspend fun deactivateAdmin(uid: String, disabledByEmail: String) {
+        if (uid.isEmpty()) return
+
+        val now = System.currentTimeMillis()
+        db.collection("users")
+            .document(uid)
+            .set(
+                mapOf(
+                    "isActive" to false,
+                    "active" to false,
+                    "status" to "inactive",
+                    "disabledAt" to now,
+                    "disabledByEmail" to disabledByEmail,
+                    "updatedAt" to now
+                ),
+                SetOptions.merge()
+            )
+            .await()
+    }
+
+    suspend fun reactivateAdmin(uid: String, reactivatedByEmail: String) {
+        if (uid.isEmpty()) return
+
+        val now = System.currentTimeMillis()
+        db.collection("users")
+            .document(uid)
+            .set(
+                mapOf(
+                    "isActive" to true,
+                    "active" to true,
+                    "status" to "active",
+                    "reactivatedAt" to now,
+                    "reactivatedByEmail" to reactivatedByEmail,
+                    "updatedAt" to now
                 ),
                 SetOptions.merge()
             )

@@ -22,7 +22,7 @@ import com.klmpk5.daycare_admin.data.local.entities.WeeklyPlan
         User::class
 
     ],
-    version = 7,
+    version = 10,
     exportSchema = false
 )
 abstract class DaycareDatabase : RoomDatabase() {

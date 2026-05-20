@@ -47,9 +47,12 @@ class LoginViewModel(
                 val user = result.user
 
                 if (user != null) {
-                    val role = firebaseService.getUserRole(user.uid)
-                    if (role == "admin") {
+                    val profile = firebaseService.getUserProfile(user.uid, forceServer = true)
+                    if (profile?.role == "admin" && profile.canLogin()) {
                         _loginState.value = LoginState.Success
+                    } else if (profile?.role == "admin" && !profile.canLogin()) {
+                        auth.signOut()
+                        _loginState.value = LoginState.Error("Akses Ditolak: Akun admin ini sudah dinonaktifkan")
                     } else {
                         auth.signOut()
                         _loginState.value = LoginState.Error("Akses Ditolak: Akun ini bukan Admin!")
@@ -76,10 +79,13 @@ class LoginViewModel(
 
                 if (user != null) {
                     // 2. Cek apakah role-nya admin di Firestore
-                    val role = firebaseService.getUserRole(user.uid)
+                    val profile = firebaseService.getUserProfile(user.uid, forceServer = true)
 
-                    if (role == "admin") {
+                    if (profile?.role == "admin" && profile.canLogin()) {
                         _loginState.value = LoginState.Success
+                    } else if (profile?.role == "admin" && !profile.canLogin()) {
+                        auth.signOut()
+                        _loginState.value = LoginState.Error("Akses Ditolak: Akun Google ini sudah dinonaktifkan")
                     } else {
                         auth.signOut() // Tendang kalau bukan admin
                         _loginState.value = LoginState.Error("Akses Ditolak: Akun Google ini bukan Admin!")
@@ -117,5 +123,9 @@ class LoginViewModel(
 
     fun clearResetState() {
         _resetPasswordState.value = LoginState.Idle
+    }
+
+    private fun com.klmpk5.daycare_admin.data.remote.model.UserRemoteDto.canLogin(): Boolean {
+        return isActive && status.lowercase() != "inactive" && status.lowercase() != "nonaktif"
     }
 }
